@@ -26,7 +26,8 @@ namespace gltf
         my_ator.current_time = 0.0f;
         my_ator.joint_count = my_skin->joint_count;
 
-        my_ator.joints = std::make_unique<glm::mat4[]>(my_ator.joint_count);
+        my_ator.internal_joints = std::make_unique<glm::mat4[]>(static_cast<size_t> (my_ator.joint_count) + 1);
+        my_ator.joints = &(my_ator.internal_joints[1]);
 
         my_ator.anim = my_anim;
         my_ator.skin = my_skin;

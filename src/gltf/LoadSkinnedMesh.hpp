@@ -23,7 +23,7 @@ namespace gltf
         my_mesh.indices = std::make_unique<uint32_t[]>(my_mesh.index_count);
     }
 
-    void load_mesh (const cgltf_mesh &mesh, SkinnedMesh &my_mesh)
+    void load_mesh (const cgltf_mesh &mesh, SkinnedMesh &my_mesh, const cgltf_skin &skin, std::map<std::string, int8_t> &joint_map)
     {
         ASSERT(mesh.primitives_count == 1, "This loader only supports meshes with one triangle pack!");
 
@@ -123,11 +123,6 @@ namespace gltf
             {
                 my_mesh.vertices[i].vertex = *(reinterpret_cast<const glm::vec3 *> (&(data[offset + i * stride])));
             }
-
-            for (cgltf_size i = 0; i < accessor->count; ++i)
-            {
-                spdlog::info("vertex: ({}, {}, {})", my_mesh.vertices[i].vertex.x, my_mesh.vertices[i].vertex.y, my_mesh.vertices[i].vertex.z);
-            }
         }
 
         // load joint indices
@@ -226,7 +221,20 @@ namespace gltf
 
             for (cgltf_size i = 0; i < accessor->count; ++i)
             {
-                spdlog::info("joint index: ({}, {}, {}, {})", my_mesh.vertices[i].joint_index.x, my_mesh.vertices[i].joint_index.y, my_mesh.vertices[i].joint_index.z, my_mesh.vertices[i].joint_index.w);
+                const auto index_x = static_cast<cgltf_size> (my_mesh.vertices[i].joint_index.x);
+                const auto index_y = static_cast<cgltf_size> (my_mesh.vertices[i].joint_index.y);
+                const auto index_z = static_cast<cgltf_size> (my_mesh.vertices[i].joint_index.z);
+                const auto index_w = static_cast<cgltf_size> (my_mesh.vertices[i].joint_index.w);
+
+                auto my_index_x = joint_map.at(skin.joints[index_x]->name);
+                auto my_index_y = joint_map.at(skin.joints[index_y]->name);
+                auto my_index_z = joint_map.at(skin.joints[index_z]->name);
+                auto my_index_w = joint_map.at(skin.joints[index_w]->name);
+
+                my_mesh.vertices[i].joint_index.x = static_cast<float> (my_index_x);
+                my_mesh.vertices[i].joint_index.y = static_cast<float> (my_index_y);
+                my_mesh.vertices[i].joint_index.z = static_cast<float> (my_index_z);
+                my_mesh.vertices[i].joint_index.w = static_cast<float> (my_index_w);
             }
         }
 
@@ -250,11 +258,6 @@ namespace gltf
             for (cgltf_size i = 0; i < accessor->count; ++i)
             {
                 my_mesh.vertices[i].joint_weight = *(reinterpret_cast<const glm::vec4 *> (&(data[offset + i * stride])));
-            }
-
-            for (cgltf_size i = 0; i < accessor->count; ++i)
-            {
-                spdlog::info("joint weight: ({}, {}, {}, {})", my_mesh.vertices[i].joint_weight.x, my_mesh.vertices[i].joint_weight.y, my_mesh.vertices[i].joint_weight.z, my_mesh.vertices[i].joint_weight.w);
             }
         }
 
@@ -331,11 +334,6 @@ namespace gltf
 
                 default:
                 ASSERT(0, "Asked for component_size of invalid component_type!");
-            }
-
-            for (cgltf_size i = 0; i < accessor->count; i += 3)
-            {
-                spdlog::info("index: ({}, {}, {})", my_mesh.indices[i + 0], my_mesh.indices[i + 1], my_mesh.indices[i + 2]);
             }
         }
     }

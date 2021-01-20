@@ -36,13 +36,13 @@ namespace gltf
         const auto &skin = data->skins[0];
         const auto &anim = data->animations[0];
 
-        SkinnedMesh mesh_buffer;
-        load_mesh(mesh, mesh_buffer);
-        load_gl_mesh(mesh_buffer, my_mesh);
-
-        std::map<std::string, uint8_t> joint_map{};
+        std::map<std::string, int8_t> joint_map{};
         load_skin(skin, *data, my_skin, joint_map); // TODO maybe data us not required here!
         load_anim(anim, skin, my_anim, joint_map);
+
+        SkinnedMesh mesh_buffer;
+        load_mesh(mesh, mesh_buffer, skin, joint_map);
+        load_gl_mesh(mesh_buffer, my_mesh);
 
         cgltf_free(data);
     }

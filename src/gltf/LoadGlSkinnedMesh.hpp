@@ -27,15 +27,15 @@ namespace gltf
         glBufferData(GL_ARRAY_BUFFER, mesh.vertex_count * SkinnedMesh::stride, mesh.vertices.get(), GL_STATIC_DRAW);
         ASSERT_OPEN_GL_STATUS();
 
-        glVertexAttribPointer(SkinnedMesh::vertex_layout, 3, GL_FLOAT, GL_FALSE, SkinnedMesh::stride, reinterpret_cast<const void *> (SkinnedMesh::vertex_offset));
+        glVertexAttribPointer(SkinnedMesh::vertex_layout, 3, GL_FLOAT, GL_FALSE, SkinnedMesh::stride, SkinnedMesh::vertex_offset);
         glEnableVertexAttribArray(SkinnedMesh::vertex_layout);
         ASSERT_OPEN_GL_STATUS();
 
-        glVertexAttribPointer(SkinnedMesh::joint_index_layout, 4, GL_FLOAT, GL_FALSE, SkinnedMesh::stride, reinterpret_cast<const void *> (SkinnedMesh::joint_index_offset));
+        glVertexAttribPointer(SkinnedMesh::joint_index_layout, 4, GL_FLOAT, GL_FALSE, SkinnedMesh::stride, SkinnedMesh::joint_index_offset);
         glEnableVertexAttribArray(SkinnedMesh::joint_index_layout);
         ASSERT_OPEN_GL_STATUS();
 
-        glVertexAttribPointer(SkinnedMesh::joint_weight_layout, 4, GL_FLOAT, GL_FALSE, SkinnedMesh::stride, reinterpret_cast<const void *> (SkinnedMesh::joint_weight_offset));
+        glVertexAttribPointer(SkinnedMesh::joint_weight_layout, 4, GL_FLOAT, GL_FALSE, SkinnedMesh::stride, SkinnedMesh::joint_weight_offset);
         glEnableVertexAttribArray(SkinnedMesh::joint_weight_layout);
         ASSERT_OPEN_GL_STATUS();
 

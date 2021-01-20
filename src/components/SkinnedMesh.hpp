@@ -16,14 +16,14 @@ struct SkinnedMesh
     std::unique_ptr<VertexData[]> vertices{};
     std::unique_ptr<uint32_t[]> indices{};
 
-    uint32_t vertex_count{};
-    uint32_t index_count{};
+    int32_t vertex_count{};
+    int32_t index_count{};
 
-    static inline size_t stride = sizeof (VertexData);
+    static inline int32_t stride = sizeof(VertexData);
 
-    static inline size_t vertex_offset = 0;
-    static inline size_t joint_index_offset = sizeof(glm::vec3);
-    static inline size_t joint_weight_offset = sizeof(glm::vec3) + sizeof(glm::vec4);
+    static inline const void *vertex_offset = nullptr;
+    static inline const void *joint_index_offset = reinterpret_cast< const void *> (sizeof(glm::vec3));
+    static inline const void *joint_weight_offset = reinterpret_cast< const void *> (sizeof(glm::vec3) + sizeof(glm::vec4));
 
     static inline uint32_t vertex_layout = 0;
     static inline uint32_t joint_index_layout = 1;

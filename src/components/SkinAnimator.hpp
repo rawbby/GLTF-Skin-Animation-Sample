@@ -16,8 +16,10 @@ struct SkinAnimator
     Skin *skin = nullptr;
     SkinAnimation *anim = nullptr;
 
-    std::unique_ptr<glm::mat4[]> joints{};
-    uint8_t joint_count = 0;
+    std::unique_ptr<glm::mat4[]> internal_joints{};
+    glm::mat4 *joints{};
+
+    int8_t joint_count = 0;
 
     float current_time = 0.0f;
 
@@ -42,21 +44,22 @@ struct SkinAnimator
                     auto translate = glm::translate(glm::identity<glm::mat4>(), glm::mix(f0[0].translation, f1[0].translation, current_time));
                     auto rotation = glm::toMat4(glm::slerp(f0[0].rotation, f1[0].rotation, current_time));
 
-                    joints[0] =  parent * translate * rotation * scale;
+                    internal_joints[0] = glm::identity<glm::mat4>();
 
-                    for (uint8_t j = 1; j < joint_count; ++j)
+                    for (int8_t j = 0; j < joint_count; ++j)
                     {
-                        parent = joints[skin->joint_parent_indices[j]];
+                        const auto parent_index = skin->joint_parent_indices[j] + 1;
+                        parent = internal_joints[parent_index];
 
                         scale = glm::scale(glm::identity<glm::mat4>(), glm::mix(f0[j].scale, f1[j].scale, current_time));
                         translate = glm::translate(glm::identity<glm::mat4>(), glm::mix(f0[j].translation, f1[j].translation, current_time));
                         rotation = glm::toMat4(glm::slerp(f0[j].rotation, f1[j].rotation, current_time));
 
-                        auto jointi   =parent * translate * rotation * scale;
-                        joints[j] = jointi ;
+                        auto jointi = parent * translate * rotation * scale;
+                        joints[j] = jointi;
                     }
 
-                    for (uint8_t j = 0; j < joint_count; ++j)
+                    for (int8_t j = 0; j < joint_count; ++j)
                     {
                         joints[j] = skin->joint_global_inverse * joints[j] * skin->joint_bind_inverse[j];
                     }

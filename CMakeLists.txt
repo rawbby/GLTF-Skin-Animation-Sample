@@ -17,7 +17,7 @@ conan_cmake_run(REQUIRES
 
 set(THIS gltf-skin)
 
-add_executable(${THIS} src/gltf/LoadGlSkinnedMesh.hpp)
+add_executable(${THIS})
 set_compile_options(${THIS})
 set_compile_warnings(${THIS})
 
