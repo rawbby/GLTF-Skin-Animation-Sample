@@ -9,9 +9,14 @@
 
 #include <spdlog/spdlog.h>
 
+#include <util/Assert.hpp>
+
+/*
 std::string load_text (std::string_view path)
 {
     std::fstream ifs{path.data(), std::ios::in | std::ios::binary | std::ios::ate};
+    ASSERT(ifs, "Could not open file! {}", path.data());
+
     const auto size = static_cast<size_t> (ifs.tellg());
 
     ifs.seekg(0, std::ios::beg);
@@ -22,6 +27,7 @@ std::string load_text (std::string_view path)
     ifs.read(buffer.data(), size);
     return buffer;
 }
+*/
 
 GLuint compile_shader (GLuint type, std::string_view shader_source)
 {
@@ -50,16 +56,6 @@ GLuint compile_shader (GLuint type, std::string_view shader_source)
     }
 
     return shader;
-}
-
-GLuint vertex_shader_from_path (std::string_view path)
-{
-    return compile_shader(GL_VERTEX_SHADER, load_text(path));
-}
-
-GLuint fragment_shader_from_path (std::string_view path)
-{
-    return compile_shader(GL_FRAGMENT_SHADER, load_text(path));
 }
 
 GLuint compile_program (GLuint vertex_shader, GLuint fragment_shader)

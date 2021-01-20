@@ -9,15 +9,17 @@
 
 #include <components/Skin.hpp>
 #include <components/SkinAnimation.hpp>
+#include <components/GlSkinnedMesh.hpp>
 #include <components/SkinnedMesh.hpp>
 
 #include <gltf/LoadSkinnedMesh.hpp>
 #include <gltf/LoadSkin.hpp>
 #include <gltf/LoadSkinAnimation.hpp>
+#include <gltf/LoadGlSkinnedMesh.hpp>
 
 namespace gltf
 {
-    void load_model (SkinnedMesh &my_mesh, Skin &my_skin, SkinAnimation &my_anim, std::string_view path)
+    void load_model (GlSkinnedMesh &my_mesh, Skin &my_skin, SkinAnimation &my_anim, std::string_view path)
     {
         cgltf_options options{};
         cgltf_data *data = nullptr;
@@ -34,7 +36,9 @@ namespace gltf
         const auto &skin = data->skins[0];
         const auto &anim = data->animations[0];
 
-        load_mesh(mesh, my_mesh);
+        SkinnedMesh mesh_buffer;
+        load_mesh(mesh, mesh_buffer);
+        load_gl_mesh(mesh_buffer, my_mesh);
 
         std::map<std::string, uint8_t> joint_map{};
         load_skin(skin, *data, my_skin, joint_map); // TODO maybe data us not required here!

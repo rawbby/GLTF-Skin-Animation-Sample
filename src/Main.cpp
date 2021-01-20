@@ -1,20 +1,25 @@
 #include <GL/glew.h>
 #include <GL/GL.h>
 
+#include <glsl/vs.glsl.hpp>
+#include <glsl/fs.glsl.hpp>
+
 #include <SFML/Graphics.hpp>
 
 #include <util/SfmlComponents.hpp>
 #include <util/GLUtils.hpp>
 
-#include <components/SkinnedMesh.hpp>
+#include <components/GlSkinnedMesh.hpp>
 #include <components/Skin.hpp>
 #include <components/SkinAnimation.hpp>
 #include <components/SkinAnimator.hpp>
 
 #include <gltf/GLTFLoader.hpp>
 
-int main ()
+int main (const int argc, const char **argv)
 {
+    ASSERT(argc > 1, "Please provide an input file! (.gltf)");
+
     sf::ContextSettings settings{24, 8, 4, 4, 5, sf::ContextSettings::Default, false};
     sf::Window window(sf::VideoMode(800, 600), "OpenGL", sf::Style::Default, settings);
     window.setFramerateLimit(144);
@@ -26,15 +31,15 @@ int main ()
     glEnable(GL_BLEND);
 
     Skin skin{};
-    SkinnedMesh mesh{};
+    GlSkinnedMesh mesh{};
     SkinAnimation anim{};
-    gltf::load_model(mesh, skin, anim, "res/c.gltf");
+    gltf::load_model(mesh, skin, anim, argv[1]);
 
     SkinAnimator ator{};
     gltf::init_ator(ator, &skin, &anim);
 
-    const auto vertex_shader = vertex_shader_from_path("res/vs.glsl");
-    const auto fragment_shader = fragment_shader_from_path("res/fs.glsl");
+    const auto vertex_shader = compile_shader(GL_VERTEX_SHADER, glsl::vs::text);
+    const auto fragment_shader = compile_shader(GL_FRAGMENT_SHADER, glsl::fs::text);
     const auto program = compile_program(vertex_shader, fragment_shader);
 
     Escape escape{&window};
@@ -54,9 +59,9 @@ int main ()
         glUniformMatrix4fv(glGetUniformLocation(program, "u_projection_matrix"), 1, GL_FALSE, glm::value_ptr(projection.matrix() * camera.matrix()));
         glUniformMatrix4fv(glGetUniformLocation(program, "u_model_view_matrix"), 1, GL_FALSE, glm::value_ptr(glm::identity<glm::mat4>()));
 
-        glUniformMatrix4fv(glGetUniformLocation(program, "u_joints"), skin.joint_count, GL_FALSE, glm::value_ptr(*(ator.joints.get())));;
+        glUniformMatrix4fv(glGetUniformLocation(program, "u_joints"), skin.joint_count, GL_FALSE, glm::value_ptr(*(ator.joints.get())));
 
-        glDrawElements(GL_TRIANGLES, mesh.index_count, GL_UNSIGNED_SHORT, nullptr);
+        glDrawElements(GL_TRIANGLES, mesh.index_count, GL_UNSIGNED_INT, nullptr);
 
         glUseProgram(GL_NONE);
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <components/Skin.hpp>
-#include <components/SkinnedMesh.hpp>
+#include <components/GlSkinnedMesh.hpp>
 #include <components/SkinAnimation.hpp>
 
 #include <glm/vec3.hpp>

@@ -4,7 +4,6 @@ project("GLTF - Skin" LANGUAGES CXX)
 
 include(cmake/set_compile_options.cmake)
 include(cmake/set_compile_warnings.cmake)
-include(cmake/target_resources.cmake)
 
 include(cmake/conan.cmake)
 conan_add_remote(NAME bincrafters URL https://api.bintray.com/conan/bincrafters/public-conan)
@@ -18,7 +17,7 @@ conan_cmake_run(REQUIRES
 
 set(THIS gltf-skin)
 
-add_executable(${THIS} src/util/SfmlComponents.hpp src/gltf/LoadSkinnedMesh.hpp src/gltf/LoadSkin.hpp src/gltf/LoadSkinAnimation.hpp src/gltf/GLTFLoader.hpp src/components/Skin.hpp src/components/SkinnedMesh.hpp src/components/SkinAnimation.hpp src/components/SkinAnimator.hpp src/gltf/LoadModel.hpp src/gltf/LoadSkinAnimator.hpp)
+add_executable(${THIS} src/gltf/LoadGlSkinnedMesh.hpp)
 set_compile_options(${THIS})
 set_compile_warnings(${THIS})
 
@@ -26,6 +25,10 @@ target_include_directories(${THIS} PRIVATE src)
 
 target_sources(${THIS} PRIVATE
 
+        src/glsl/vs.glsl.hpp
+        src/glsl/fs.glsl.hpp
+
+        src/components/GlSkinnedMesh.hpp
         src/components/Skin.hpp
         src/components/SkinAnimation.hpp
         src/components/SkinAnimator.hpp

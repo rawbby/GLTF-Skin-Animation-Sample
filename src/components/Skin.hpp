@@ -13,4 +13,3 @@ struct Skin
     glm::mat4 joint_global_inverse{};
     uint8_t joint_count = 0;
 };
-

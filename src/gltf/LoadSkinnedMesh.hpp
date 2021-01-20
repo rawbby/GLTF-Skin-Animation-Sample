@@ -12,9 +12,15 @@
 
 namespace gltf
 {
-    void init_mesh (SkinnedMesh &my_mesh, int32_t vertex_count)
+    void init_mesh (SkinnedMesh &my_mesh, cgltf_primitive &primitive)
     {
-        my_mesh.index_count = vertex_count;
+        ASSERT(primitive.attributes_count, "No vertices for mesh!");
+
+        my_mesh.vertex_count = primitive.attributes[0].data->count;
+        my_mesh.index_count = primitive.indices->count;
+
+        my_mesh.vertices = std::make_unique<SkinnedMesh::VertexData[]>(my_mesh.vertex_count);
+        my_mesh.indices = std::make_unique<uint32_t[]>(my_mesh.index_count);
     }
 
     void load_mesh (const cgltf_mesh &mesh, SkinnedMesh &my_mesh)
@@ -26,136 +32,311 @@ namespace gltf
         ASSERT(primitive.indices->type == cgltf_type_scalar, "Index information invalid for mesh!");
         ASSERT(primitive.type == cgltf_primitive_type_triangles, "This loader only supports triangle meshes!");
 
-        // ASSERT(primitive.attributes_count == 5, "This loader only supports meshes with the 5 attributes: vertices, normals, tex_coords, joint_indices and joint_weights!");
+        init_mesh(my_mesh, primitive);
 
-        init_mesh(my_mesh, primitive.indices->count);
-
-        std::map<cgltf_buffer *, GLuint> gpu_buffers{};
-        glGenVertexArrays(1, &my_mesh.vao);
-        glBindVertexArray(my_mesh.vao);
-        ASSERT_OPEN_GL_STATUS();
-
-        bool vertices_loaded = false;
-        bool normals_loaded = false;
-        bool tex_coords_loaded = false;
-        bool joint_indices_loaded = false;
-        bool joint_weights_loaded = false;
-
-        for (cgltf_size k = 0; k < primitive.attributes_count; ++k)
+        auto find_attribute = [] (const cgltf_primitive &primitive, cgltf_attribute_type type, cgltf_int index) -> cgltf_attribute *
         {
-            auto &attribute = primitive.attributes[k];
-            auto *accessor = attribute.data;
-
-            // continue if not supported:
-            //@formatter:off
-            if (attribute.type == cgltf_attribute_type_color) continue;
-            if (attribute.type == cgltf_attribute_type_tangent) continue;
-            if (attribute.type == cgltf_attribute_type_invalid) continue;
-            //@formatter:on
-
-            auto *buffer = attribute.data->buffer_view->buffer;
-            if (!gpu_buffers.contains(buffer))
+            for (cgltf_size i = 0; i < primitive.attributes_count; ++i)
             {
-                GLuint gpu_buffer = GL_NONE;
-                glGenBuffers(1, &gpu_buffer);
-                glBindBuffer(GL_ARRAY_BUFFER, gpu_buffer);
-                glBufferData(GL_ARRAY_BUFFER, buffer->size, buffer->data, GL_STATIC_DRAW);
-                ASSERT_OPEN_GL_STATUS();
-                gpu_buffers[buffer] = gpu_buffer;
-            }
-            else
-            {
-                glBindBuffer(GL_ARRAY_BUFFER, gpu_buffers[buffer]);
+                auto &attribute = primitive.attributes[i];
+
+                if (attribute.type == type && attribute.index == index)
+                {
+                    return &attribute;
+                }
             }
 
-            const auto stride = static_cast<GLsizei> (accessor->stride);
-            const auto *offset = reinterpret_cast <void *>(accessor->offset + accessor->buffer_view->offset);
-
-            switch (attribute.type)
+            ASSERT(0, "Mesh does not provide attribute {} with index {}!", type, index);
+        };
+        auto component_size = [] (const cgltf_accessor *accessor)
+        {
+            switch (accessor->component_type)
             {
-                case cgltf_attribute_type_position:
-                {
-                    ASSERT(!(vertices_loaded), "Vertices already loaded!");
-                    ASSERT(accessor->type == cgltf_type_vec3, "Vertex information invalid for mesh!");
-                    ASSERT(accessor->component_type == cgltf_component_type_r_32f, "Vertex index information invalid for mesh!");
-                    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, offset);
-                    glEnableVertexAttribArray(0);
-                    ASSERT_OPEN_GL_STATUS();
-                    vertices_loaded = true;
-                    break;
-                }
-                case cgltf_attribute_type_normal:
-                {
-                    ASSERT(!(normals_loaded), "Normals already loaded!");
-                    ASSERT(accessor->type == cgltf_type_vec3, "Normal information invalid for mesh!");
-                    ASSERT(accessor->component_type == cgltf_component_type_r_32f, "Normal index information invalid for mesh!");
-                    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, offset);
-                    glEnableVertexAttribArray(1);
-                    ASSERT_OPEN_GL_STATUS();
-                    normals_loaded = true;
-                    break;
-                }
-                case cgltf_attribute_type_texcoord:
-                {
-                    ASSERT(!(tex_coords_loaded), "Tex Coords already loaded!");
-                    ASSERT(accessor->type == cgltf_type_vec2, "Texture coordinate information invalid for mesh!");
-                    ASSERT(accessor->component_type == cgltf_component_type_r_32f, "Texture coordinate index information invalid for mesh!");
-                    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, offset);
-                    glEnableVertexAttribArray(2);
-                    ASSERT_OPEN_GL_STATUS();
-                    tex_coords_loaded = true;
-                    break;
-                }
-                case cgltf_attribute_type_joints:
-                {
-                    ASSERT(!(joint_indices_loaded), "Joint indices already loaded!");
-                    ASSERT(accessor->type == cgltf_type_vec4, "Joint index information invalid for mesh!");
-                    ASSERT(accessor->component_type == cgltf_component_type_r_8u, "Joint index information invalid for mesh!");
-                    glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offset);
-                    glEnableVertexAttribArray(3);
-                    ASSERT_OPEN_GL_STATUS();
-                    joint_indices_loaded = true;
-                    break;
-                }
-                case cgltf_attribute_type_weights:
-                {
-                    ASSERT(!(joint_weights_loaded), "Joint weights already loaded!");
-                    ASSERT(accessor->type == cgltf_type_vec4, "Joint weight information invalid for mesh!");
-                    ASSERT(accessor->component_type == cgltf_component_type_r_32f, "Joint weight information invalid for mesh!");
-                    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, stride, offset);
-                    glEnableVertexAttribArray(4);
-                    ASSERT_OPEN_GL_STATUS();
-                    joint_weights_loaded = true;
-                    break;
-                }
+                case cgltf_component_type_r_8:
+                case cgltf_component_type_r_8u:
+                    return 1;
+
+                case cgltf_component_type_r_16:
+                case cgltf_component_type_r_16u:
+                    return 2;
+
+                case cgltf_component_type_r_32u:
+                case cgltf_component_type_r_32f:
+                    return 4;
+
+                case cgltf_component_type_invalid:
+                ASSERT(0, "Asked for component_size of invalid component_type!");
                 default:
-                ASSERT(0, "This loader only supports the following meshes attributes: vertices, normals, tex_coords, joint_indices and joint_weights!");
+                ASSERT(0, "Asked for component_size of unknown component_type!");
+            }
+        };
+        auto component_count = [] (const cgltf_accessor *accessor)
+        {
+            switch (accessor->type)
+            {
+                case cgltf_type_scalar:
+                    return 1;
+                case cgltf_type_vec2:
+                    return 2;
+                case cgltf_type_vec3:
+                    return 3;
+                case cgltf_type_vec4:
+                case cgltf_type_mat2:
+                    return 4;
+                case cgltf_type_mat3:
+                    return 9;
+                case cgltf_type_mat4:
+                    return 16;
+
+                default:
+                ASSERT(0, "Asked for component_count of invalid component_type!");
+            }
+        };
+
+        const auto vertex_layout = 0;
+        const auto joint_index_layout = 1;
+        const auto joint_weight_layout = 2;
+        cgltf_attribute *attributes[3]{};
+
+        attributes[vertex_layout] = find_attribute(primitive, cgltf_attribute_type_position, 0);
+        attributes[joint_index_layout] = find_attribute(primitive, cgltf_attribute_type_joints, 0);
+        attributes[joint_weight_layout] = find_attribute(primitive, cgltf_attribute_type_weights, 0);
+
+        // load vertices
+        {
+            const auto *attribute = attributes[vertex_layout];
+            const auto *accessor = attribute->data;
+            const auto *buffer_view = accessor->buffer_view;
+            const auto *buffer = buffer_view->buffer;
+            const auto *data = reinterpret_cast<char *> (buffer->data);
+
+            const auto &count = accessor->count;
+
+            ASSERT(count == my_mesh.vertex_count, "Invalid vertex count for attribute {}!", attribute->name);
+            ASSERT(accessor->component_type == cgltf_component_type_r_32f, "Invalid component type in accessor of attribute {}!", attribute->name);
+            ASSERT(accessor->type == cgltf_type_vec3, "Invalid component count in accessor of attribute {}!", attribute->name);
+
+            const auto offset = accessor->offset + buffer_view->offset;
+            const auto stride = accessor->stride ? accessor->stride : component_size(accessor) * component_count(accessor);
+
+            for (cgltf_size i = 0; i < accessor->count; ++i)
+            {
+                my_mesh.vertices[i].vertex = *(reinterpret_cast<const glm::vec3 *> (&(data[offset + i * stride])));
+            }
+
+            for (cgltf_size i = 0; i < accessor->count; ++i)
+            {
+                spdlog::info("vertex: ({}, {}, {})", my_mesh.vertices[i].vertex.x, my_mesh.vertices[i].vertex.y, my_mesh.vertices[i].vertex.z);
             }
         }
 
-        ASSERT(vertices_loaded, "No Vertices to load!");
-        ASSERT(normals_loaded, "No Normals to load!");
-        ASSERT(tex_coords_loaded, "No Tex Coords to load!");
-        ASSERT(joint_indices_loaded, "No Joint Indices to load!");
-        ASSERT(joint_weights_loaded, "No Joint Weights to load!");
-
-        auto *index_buffer_view = primitive.indices->buffer_view;
-        auto *index_buffer = index_buffer_view->buffer;
-        auto *index_buffer_data = &(reinterpret_cast<char *>(index_buffer->data)[index_buffer_view->offset]);
-        const auto index_buffer_size = static_cast<GLsizei> (index_buffer_view->size);
-
-        GLuint gpu_index_buffer = GL_NONE;
-        glGenBuffers(1, &gpu_index_buffer);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gpu_index_buffer);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_size, index_buffer_data, GL_STATIC_DRAW);
-        ASSERT_OPEN_GL_STATUS();
-
-        glBindVertexArray(GL_NONE);
-        for (const auto &gpu_buffer: gpu_buffers)
+        // load joint indices
         {
-            glDeleteBuffers(1, &gpu_buffer.second);
+            const auto *attribute = attributes[joint_index_layout];
+            const auto *accessor = attribute->data;
+            const auto *buffer_view = accessor->buffer_view;
+            const auto *buffer = buffer_view->buffer;
+            const auto *data = reinterpret_cast<const char *> (buffer->data);
+
+            const auto &count = accessor->count;
+
+            ASSERT(count == my_mesh.vertex_count, "Invalid vertex count for attribute {}!", attribute->name);
+            ASSERT(accessor->type == cgltf_type_vec4, "Invalid component count in accessor of attribute {}!", attribute->name);
+
+            const auto offset = accessor->offset + buffer_view->offset;
+            const auto stride = accessor->stride ? accessor->stride : component_size(accessor) * component_count(accessor);
+
+            switch (accessor->component_type)
+            {
+                case cgltf_component_type_r_8:
+
+                    for (cgltf_size i = 0; i < accessor->count; ++i)
+                    {
+                        const auto *joint_index = reinterpret_cast<const int8_t *> (&(data[offset + i * stride]));
+                        my_mesh.vertices[i].joint_index[0] = static_cast<float> (joint_index[0]);
+                        my_mesh.vertices[i].joint_index[1] = static_cast<float> (joint_index[1]);
+                        my_mesh.vertices[i].joint_index[2] = static_cast<float> (joint_index[2]);
+                        my_mesh.vertices[i].joint_index[3] = static_cast<float> (joint_index[3]);
+                    }
+                    break;
+
+                case cgltf_component_type_r_8u:
+
+                    for (cgltf_size i = 0; i < accessor->count; ++i)
+                    {
+                        const auto *joint_index = reinterpret_cast<const uint8_t *> (&(data[offset + i * stride]));
+                        my_mesh.vertices[i].joint_index[0] = static_cast<float> (joint_index[0]);
+                        my_mesh.vertices[i].joint_index[1] = static_cast<float> (joint_index[1]);
+                        my_mesh.vertices[i].joint_index[2] = static_cast<float> (joint_index[2]);
+                        my_mesh.vertices[i].joint_index[3] = static_cast<float> (joint_index[3]);
+                    }
+                    break;
+
+                case cgltf_component_type_r_16:
+
+                    for (cgltf_size i = 0; i < accessor->count; ++i)
+                    {
+                        const auto *joint_index = reinterpret_cast<const int16_t *> (&(data[offset + i * stride]));
+                        my_mesh.vertices[i].joint_index[0] = static_cast<float> (joint_index[0]);
+                        my_mesh.vertices[i].joint_index[1] = static_cast<float> (joint_index[1]);
+                        my_mesh.vertices[i].joint_index[2] = static_cast<float> (joint_index[2]);
+                        my_mesh.vertices[i].joint_index[3] = static_cast<float> (joint_index[3]);
+                    }
+                    break;
+
+                case cgltf_component_type_r_16u:
+
+                    for (cgltf_size i = 0; i < accessor->count; ++i)
+                    {
+                        const auto *joint_index = reinterpret_cast<const uint16_t *> (&(data[offset + i * stride]));
+                        my_mesh.vertices[i].joint_index[0] = static_cast<float> (joint_index[0]);
+                        my_mesh.vertices[i].joint_index[1] = static_cast<float> (joint_index[1]);
+                        my_mesh.vertices[i].joint_index[2] = static_cast<float> (joint_index[2]);
+                        my_mesh.vertices[i].joint_index[3] = static_cast<float> (joint_index[3]);
+                    }
+                    break;
+
+                case cgltf_component_type_r_32u:
+
+                    for (cgltf_size i = 0; i < accessor->count; ++i)
+                    {
+                        const auto *joint_index = reinterpret_cast<const uint32_t *> (&(data[offset + i * stride]));
+                        my_mesh.vertices[i].joint_index[0] = static_cast<float> (joint_index[0]);
+                        my_mesh.vertices[i].joint_index[1] = static_cast<float> (joint_index[1]);
+                        my_mesh.vertices[i].joint_index[2] = static_cast<float> (joint_index[2]);
+                        my_mesh.vertices[i].joint_index[3] = static_cast<float> (joint_index[3]);
+                    }
+                    break;
+
+                case cgltf_component_type_r_32f:
+
+                    for (cgltf_size i = 0; i < accessor->count; ++i)
+                    {
+                        const auto *joint_index = reinterpret_cast<const float *> (&(data[offset + i * stride]));
+                        my_mesh.vertices[i].joint_index[0] = joint_index[0];
+                        my_mesh.vertices[i].joint_index[1] = joint_index[1];
+                        my_mesh.vertices[i].joint_index[2] = joint_index[2];
+                        my_mesh.vertices[i].joint_index[3] = joint_index[3];
+                    }
+                    break;
+
+                default:
+                ASSERT(0, "Asked for component_size of invalid component_type!");
+            }
+
+            for (cgltf_size i = 0; i < accessor->count; ++i)
+            {
+                spdlog::info("joint index: ({}, {}, {}, {})", my_mesh.vertices[i].joint_index.x, my_mesh.vertices[i].joint_index.y, my_mesh.vertices[i].joint_index.z, my_mesh.vertices[i].joint_index.w);
+            }
         }
-        glDeleteBuffers(1, &gpu_index_buffer);
-        ASSERT_OPEN_GL_STATUS();
+
+        // load joint weights
+        {
+            const auto *attribute = attributes[joint_weight_layout];
+            const auto *accessor = attribute->data;
+            const auto *buffer_view = accessor->buffer_view;
+            const auto *buffer = buffer_view->buffer;
+            const auto *data = reinterpret_cast<const char *> (buffer->data);
+
+            const auto &count = accessor->count;
+
+            ASSERT(count == my_mesh.vertex_count, "Invalid vertex count for attribute {}!", attribute->name);
+            ASSERT(accessor->component_type == cgltf_component_type_r_32f, "Invalid component type in accessor of attribute {}!", attribute->name);
+            ASSERT(accessor->type == cgltf_type_vec4, "Invalid component count in accessor of attribute {}!", attribute->name);
+
+            const auto offset = accessor->offset + buffer_view->offset;
+            const auto stride = accessor->stride ? accessor->stride : component_size(accessor) * component_count(accessor);
+
+            for (cgltf_size i = 0; i < accessor->count; ++i)
+            {
+                my_mesh.vertices[i].joint_weight = *(reinterpret_cast<const glm::vec4 *> (&(data[offset + i * stride])));
+            }
+
+            for (cgltf_size i = 0; i < accessor->count; ++i)
+            {
+                spdlog::info("joint weight: ({}, {}, {}, {})", my_mesh.vertices[i].joint_weight.x, my_mesh.vertices[i].joint_weight.y, my_mesh.vertices[i].joint_weight.z, my_mesh.vertices[i].joint_weight.w);
+            }
+        }
+
+        // load indices
+        {
+            const auto *accessor = primitive.indices;
+            const auto *buffer_view = accessor->buffer_view;
+            const auto *buffer = buffer_view->buffer;
+            const auto *data = reinterpret_cast<const char *> (buffer->data);
+
+            const auto &count = accessor->count;
+
+            ASSERT(count == my_mesh.index_count, "Invalid index count for primitive!");
+            ASSERT(accessor->type == cgltf_type_scalar, "Invalid component count in accessor of primitive indices!");
+
+            const auto offset = accessor->offset + buffer_view->offset;
+            const auto stride = accessor->stride ? accessor->stride : component_size(accessor) * component_count(accessor);
+
+            switch (accessor->component_type)
+            {
+                case cgltf_component_type_r_8:
+
+                    for (cgltf_size i = 0; i < accessor->count; ++i)
+                    {
+                        const auto *index = reinterpret_cast<const int8_t *> (&(data[offset + i * stride]));
+                        my_mesh.indices[i] = static_cast<uint32_t> (static_cast<uint16_t> (*index));
+                    }
+                    break;
+
+                case cgltf_component_type_r_8u:
+
+                    for (cgltf_size i = 0; i < accessor->count; ++i)
+                    {
+                        const auto *index = reinterpret_cast<const uint8_t *> (&(data[offset + i * stride]));
+                        my_mesh.indices[i] = static_cast<uint32_t> (*index);
+                    }
+                    break;
+
+                case cgltf_component_type_r_16:
+
+                    for (cgltf_size i = 0; i < accessor->count; ++i)
+                    {
+                        const auto *index = reinterpret_cast<const int16_t *> (&(data[offset + i * stride]));
+                        my_mesh.indices[i] = static_cast<uint32_t> (*index);
+                    }
+                    break;
+
+                case cgltf_component_type_r_16u:
+
+                    for (cgltf_size i = 0; i < accessor->count; ++i)
+                    {
+                        const auto *index = reinterpret_cast<const uint16_t *> (&(data[offset + i * stride]));
+                        my_mesh.indices[i] = static_cast<uint32_t> (*index);
+                    }
+                    break;
+
+                case cgltf_component_type_r_32u:
+
+                    for (cgltf_size i = 0; i < accessor->count; ++i)
+                    {
+                        const auto *index = reinterpret_cast<const uint32_t *> (&(data[offset + i * stride]));
+                        my_mesh.indices[i] = static_cast<uint32_t> (*index);
+                    }
+                    break;
+
+                case cgltf_component_type_r_32f:
+
+                    for (cgltf_size i = 0; i < accessor->count; ++i)
+                    {
+                        const auto *index = reinterpret_cast<const float *> (&(data[offset + i * stride]));
+                        my_mesh.indices[i] = static_cast<uint32_t> (*index);
+                    }
+                    break;
+
+                default:
+                ASSERT(0, "Asked for component_size of invalid component_type!");
+            }
+
+            for (cgltf_size i = 0; i < accessor->count; i += 3)
+            {
+                spdlog::info("index: ({}, {}, {})", my_mesh.indices[i + 0], my_mesh.indices[i + 1], my_mesh.indices[i + 2]);
+            }
+        }
     }
 }

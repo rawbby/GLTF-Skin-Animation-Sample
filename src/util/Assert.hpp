@@ -16,6 +16,7 @@
         if (GL_NO_ERROR != status)        \
         {                                 \
             spdlog::error("Assertion (file: {}, line: {}) \"GL_NO_ERROR != glGetError()\" failed! status: {}", __FILE__, __LINE__, status); \
+            exit(-1);                     \
         }                                 \
     }                                     \
     (void) 0
