@@ -14,7 +14,7 @@
 
 namespace gltf
 {
-    void init_anim (const cgltf_animation &anim, const cgltf_skin &skin, model::SkinAnimation &my_anim)
+    void init_anim (cgltf_animation &anim, cgltf_skin &skin, model::SkinAnimation &my_anim)
     {
         using TRS = model::SkinAnimation::TRS;
 
@@ -27,18 +27,18 @@ namespace gltf
         my_anim.keyframes = std::make_unique<TRS[]>(my_anim.joint_count * my_anim.keyframe_count);
     }
 
-    void load_anim (const cgltf_animation &anim, const cgltf_skin &skin, model::SkinAnimation &my_anim, const std::map<std::string, int8_t> &joint_map)
+    void load_anim (cgltf_animation &anim, cgltf_skin &skin, model::SkinAnimation &my_anim, internal::joint_map_t &joint_map)
     {
         init_anim(anim, skin, my_anim);
 
         ASSERT(anim.channels_count > 0, "invalid Animation no channels");
-        const auto *input_accessor = anim.channels[0].sampler->input;
-        const auto &input_offset = input_accessor->offset + input_accessor->buffer_view->offset;
+        auto *input_accessor = anim.channels[0].sampler->input;
+        auto input_offset = input_accessor->offset + input_accessor->buffer_view->offset;
 
         for (cgltf_size i = 0; i < input_accessor->count; ++i)
         {
-            auto *time_stamp_data = &(reinterpret_cast<const char *>(input_accessor->buffer_view->buffer->data)[input_offset]);
-            auto *timestamp = reinterpret_cast<const float *>(time_stamp_data);
+            auto *time_stamp_data = &(reinterpret_cast< char *>(input_accessor->buffer_view->buffer->data)[input_offset]);
+            auto *timestamp = reinterpret_cast< float *>(time_stamp_data);
             my_anim.timestamps[i] = timestamp[i];
         }
 
@@ -46,10 +46,10 @@ namespace gltf
         for (cgltf_size channel_j = 0; channel_j < anim.channels_count; ++channel_j)
         {
             auto &channel = anim.channels[channel_j];
-            auto index = joint_map.at(channel.target_node->name);
+            auto index = joint_map.at(channel.target_node);
 
-            const auto *output_accessor = channel.sampler->output;
-            const auto output_offset = output_accessor->offset + output_accessor->buffer_view->offset;
+            auto *output_accessor = channel.sampler->output;
+            auto output_offset = output_accessor->offset + output_accessor->buffer_view->offset;
 
             ASSERT(channel.sampler->input == input_accessor, "only support anim with same timestamps");
 

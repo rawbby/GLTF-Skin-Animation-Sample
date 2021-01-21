@@ -21,10 +21,8 @@
 
 namespace gltf
 {
-    void load_model (model::GlSkinnedMesh &my_mesh, model::Skin &my_skin, model::SkinAnimation &my_anim, std::string_view path)
+    void load_model (model::Skin &my_skin, model::GlSkinnedMesh &my_mesh, model::SkinAnimation &my_anim, std::string_view path)
     {
-        using namespace model;
-
         cgltf_options options{};
         cgltf_data *data = nullptr;
 
@@ -36,17 +34,17 @@ namespace gltf
         ASSERT(data->skins_count == 1, "Only one skin is supported at the moment! {} are present", data->skins_count);
         ASSERT(data->animations_count == 1, "Only one animation is supported at the moment! {} are present", data->animations_count);
 
-        const auto &mesh = data->meshes[0];
-        const auto &skin = data->skins[0];
-        const auto &anim = data->animations[0];
+        auto &mesh = data->meshes[0];
+        auto &skin = data->skins[0];
+        auto &anim = data->animations[0];
 
-        std::map<std::string, int8_t> joint_map{};
-        load_skin(skin, *data, my_skin, joint_map); // TODO maybe data us not required here!
+        internal::joint_map_t joint_map{};
+        load_skin(skin, *data, my_skin, joint_map);
         load_anim(anim, skin, my_anim, joint_map);
 
-        SkinnedMesh mesh_buffer;
+        model::SkinnedMesh mesh_buffer;
         load_mesh(mesh, mesh_buffer, skin, joint_map);
-        load_gl_skinned_mesh(mesh_buffer, my_mesh);
+        load_gl_skinned_mesh(my_mesh, mesh_buffer);
 
         cgltf_free(data);
     }

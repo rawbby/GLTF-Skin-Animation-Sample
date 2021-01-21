@@ -11,5 +11,5 @@
 
 namespace gltf::internal
 {
-    using joint_map = std::map<const cgltf_node *, model::size_t>;
+    using joint_map_t = std::map<cgltf_node *, size_t>;
 }

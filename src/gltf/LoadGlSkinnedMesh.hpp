@@ -15,7 +15,7 @@
 
 namespace gltf
 {
-    void load_gl_skinned_mesh (const model::SkinnedMesh &mesh, model::GlSkinnedMesh &my_mesh)
+    void load_gl_skinned_mesh (model::GlSkinnedMesh &my_mesh, model::SkinnedMesh &mesh)
     {
         using namespace model;
 

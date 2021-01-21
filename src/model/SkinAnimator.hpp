@@ -23,8 +23,7 @@ namespace model
         std::unique_ptr<glm::mat4[]> internal_joints{};
         glm::mat4 *joints{};
 
-        int8_t joint_count = 0;
-
+        size_t joint_count = 0;
         float current_time = 0.0f;
 
         void update (float delta)
@@ -33,7 +32,7 @@ namespace model
 
             while (true)
             {
-                for (uint16_t i = 1; i < anim->keyframe_count; ++i)
+                for (size_t i = 1; i < anim->keyframe_count; ++i)
                 {
                     if (current_time < anim->timestamps[i])
                     {
@@ -50,10 +49,9 @@ namespace model
 
                         internal_joints[0] = glm::identity<glm::mat4>();
 
-                        for (int8_t j = 0; j < joint_count; ++j)
+                        for (size_t j = 0; j < joint_count; ++j)
                         {
-                            const auto parent_index = skin->joint_parent_indices[j] + 1;
-                            parent = internal_joints[parent_index];
+                            parent = internal_joints[static_cast<size_t> (skin->joint_parent_indices[j]) + 1];
 
                             scale = glm::scale(glm::identity<glm::mat4>(), glm::mix(f0[j].scale, f1[j].scale, current_time));
                             translate = glm::translate(glm::identity<glm::mat4>(), glm::mix(f0[j].translation, f1[j].translation, current_time));
@@ -63,9 +61,9 @@ namespace model
                             joints[j] = jointi;
                         }
 
-                        for (int8_t j = 0; j < joint_count; ++j)
+                        for (size_t j = 0; j < joint_count; ++j)
                         {
-                            joints[j] = skin->joint_global_inverse * joints[j] * skin->joint_bind_inverse[j];
+                            joints[j] = skin->joint_global_inverse * joints[j] * skin->joint_bind_inverses[j];
                         }
 
                         return;

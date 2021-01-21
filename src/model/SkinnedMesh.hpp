@@ -20,17 +20,17 @@ namespace model
         std::unique_ptr<VertexData[]> vertices{};
         std::unique_ptr<uint32_t[]> indices{};
 
-        int32_t vertex_count{};
-        int32_t index_count{};
+        size_t vertex_count{};
+        size_t index_count{};
 
-        static inline int32_t stride = sizeof(VertexData);
+        static constexpr gl_size_t stride = sizeof(VertexData);
 
-        static inline const void *vertex_offset = nullptr;
-        static inline const void *joint_index_offset = reinterpret_cast< const void *> (sizeof(glm::vec3));
-        static inline const void *joint_weight_offset = reinterpret_cast< const void *> (sizeof(glm::vec3) + sizeof(glm::vec4));
+        static constexpr gl_offset_t vertex_offset = nullptr;
+        static inline auto joint_index_offset = reinterpret_cast<gl_offset_t> (sizeof(glm::vec3));
+        static inline auto joint_weight_offset = reinterpret_cast<gl_offset_t> (sizeof(glm::vec3) + sizeof(glm::vec4));
 
-        static inline uint32_t vertex_layout = 0;
-        static inline uint32_t joint_index_layout = 1;
-        static inline uint32_t joint_weight_layout = 2;
+        static constexpr gl_uint_t vertex_layout = 0;
+        static constexpr gl_uint_t joint_index_layout = 1;
+        static constexpr gl_uint_t joint_weight_layout = 2;
     };
 }

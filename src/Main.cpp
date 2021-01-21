@@ -33,7 +33,7 @@ int main (const int argc, const char **argv)
     model::Skin skin{};
     model::GlSkinnedMesh mesh{};
     model::SkinAnimation anim{};
-    gltf::load_model(mesh, skin, anim, argv[1]);
+    gltf::load_model(skin, mesh, anim, argv[1]);
 
     model::SkinAnimator ator{};
     gltf::init_ator(ator, &skin, &anim);

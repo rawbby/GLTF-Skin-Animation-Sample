@@ -38,7 +38,7 @@ namespace model
         std::unique_ptr<TRS[]> keyframes{};
         std::unique_ptr<float[]> timestamps{};
 
-        uint16_t keyframe_count = 0;
-        uint16_t joint_count = 0;
+        size_t keyframe_count = 0;
+        size_t joint_count = 0;
     };
 }
