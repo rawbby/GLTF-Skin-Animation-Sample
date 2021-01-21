@@ -5,16 +5,20 @@
 #include <cgltf.h>
 #endif
 
+#include <gltf/Types.hpp>
+
 #include <util/Assert.hpp>
-#include <components/GlSkinnedMesh.hpp>
-#include <components/SkinnedMesh.hpp>
+#include <model/GlSkinnedMesh.hpp>
+#include <model/SkinnedMesh.hpp>
 
 #include <cstdint>
 
 namespace gltf
 {
-    void load_gl_mesh (const SkinnedMesh &mesh, GlSkinnedMesh &my_mesh)
+    void load_gl_skinned_mesh (const model::SkinnedMesh &mesh, model::GlSkinnedMesh &my_mesh)
     {
+        using namespace model;
+
         my_mesh.index_count = mesh.index_count;
 
         glGenVertexArrays(1, &my_mesh.vao);

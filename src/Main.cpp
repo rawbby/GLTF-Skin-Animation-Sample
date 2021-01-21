@@ -9,10 +9,10 @@
 #include <util/SfmlComponents.hpp>
 #include <util/GLUtils.hpp>
 
-#include <components/GlSkinnedMesh.hpp>
-#include <components/Skin.hpp>
-#include <components/SkinAnimation.hpp>
-#include <components/SkinAnimator.hpp>
+#include <model/GlSkinnedMesh.hpp>
+#include <model/Skin.hpp>
+#include <model/SkinAnimation.hpp>
+#include <model/SkinAnimator.hpp>
 
 #include <gltf/GLTFLoader.hpp>
 
@@ -30,12 +30,12 @@ int main (const int argc, const char **argv)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
-    Skin skin{};
-    GlSkinnedMesh mesh{};
-    SkinAnimation anim{};
+    model::Skin skin{};
+    model::GlSkinnedMesh mesh{};
+    model::SkinAnimation anim{};
     gltf::load_model(mesh, skin, anim, argv[1]);
 
-    SkinAnimator ator{};
+    model::SkinAnimator ator{};
     gltf::init_ator(ator, &skin, &anim);
 
     const auto vertex_shader = compile_shader(GL_VERTEX_SHADER, glsl::vs::text);

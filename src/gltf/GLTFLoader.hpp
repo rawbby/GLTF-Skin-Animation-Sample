@@ -7,6 +7,8 @@
 
 #endif
 
+#include <gltf/Types.hpp>
+
 #include <gltf/LoadModel.hpp>
 #include <gltf/LoadSkin.hpp>
 #include <gltf/LoadSkinAnimation.hpp>

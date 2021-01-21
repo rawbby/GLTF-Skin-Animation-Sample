@@ -5,36 +5,18 @@
 #include <cgltf.h>
 #endif
 
+#include <gltf/Types.hpp>
+
 #include <util/Assert.hpp>
-#include <components/SkinnedMesh.hpp>
+#include <model/SkinnedMesh.hpp>
 
 #include <cstdint>
 
 namespace gltf
 {
-    void init_mesh (SkinnedMesh &my_mesh, cgltf_primitive &primitive)
+    namespace internal
     {
-        ASSERT(primitive.attributes_count, "No vertices for mesh!");
-
-        my_mesh.vertex_count = primitive.attributes[0].data->count;
-        my_mesh.index_count = primitive.indices->count;
-
-        my_mesh.vertices = std::make_unique<SkinnedMesh::VertexData[]>(my_mesh.vertex_count);
-        my_mesh.indices = std::make_unique<uint32_t[]>(my_mesh.index_count);
-    }
-
-    void load_mesh (const cgltf_mesh &mesh, SkinnedMesh &my_mesh, const cgltf_skin &skin, std::map<std::string, int8_t> &joint_map)
-    {
-        ASSERT(mesh.primitives_count == 1, "This loader only supports meshes with one triangle pack!");
-
-        auto &primitive = mesh.primitives[0];
-
-        ASSERT(primitive.indices->type == cgltf_type_scalar, "Index information invalid for mesh!");
-        ASSERT(primitive.type == cgltf_primitive_type_triangles, "This loader only supports triangle meshes!");
-
-        init_mesh(my_mesh, primitive);
-
-        auto find_attribute = [] (const cgltf_primitive &primitive, cgltf_attribute_type type, cgltf_int index) -> cgltf_attribute *
+        const cgltf_attribute *attribute_by_type (const cgltf_primitive &primitive, cgltf_attribute_type type, int index = 0)
         {
             for (cgltf_size i = 0; i < primitive.attributes_count; ++i)
             {
@@ -47,8 +29,9 @@ namespace gltf
             }
 
             ASSERT(0, "Mesh does not provide attribute {} with index {}!", type, index);
-        };
-        auto component_size = [] (const cgltf_accessor *accessor)
+        }
+
+        cgltf_size component_size (const cgltf_accessor *accessor)
         {
             switch (accessor->component_type)
             {
@@ -69,8 +52,9 @@ namespace gltf
                 default:
                 ASSERT(0, "Asked for component_size of unknown component_type!");
             }
-        };
-        auto component_count = [] (const cgltf_accessor *accessor)
+        }
+
+        cgltf_size component_count (const cgltf_accessor *accessor)
         {
             switch (accessor->type)
             {
@@ -87,37 +71,33 @@ namespace gltf
                     return 9;
                 case cgltf_type_mat4:
                     return 16;
-
                 default:
                 ASSERT(0, "Asked for component_count of invalid component_type!");
             }
-        };
+        }
 
-        const auto vertex_layout = 0;
-        const auto joint_index_layout = 1;
-        const auto joint_weight_layout = 2;
-        cgltf_attribute *attributes[3]{};
-
-        attributes[vertex_layout] = find_attribute(primitive, cgltf_attribute_type_position, 0);
-        attributes[joint_index_layout] = find_attribute(primitive, cgltf_attribute_type_joints, 0);
-        attributes[joint_weight_layout] = find_attribute(primitive, cgltf_attribute_type_weights, 0);
-
-        // load vertices
+        cgltf_size accessor_offset (const cgltf_accessor *accessor)
         {
-            const auto *attribute = attributes[vertex_layout];
+            return accessor->offset + accessor->buffer_view->offset;
+        }
+
+        cgltf_size accessor_stride (const cgltf_accessor *accessor)
+        {
+            return accessor->stride ? accessor->stride : component_size(accessor) * component_count(accessor);
+        }
+
+        void load_vertices (model::SkinnedMesh &my_mesh, const cgltf_primitive &primitive)
+        {
+            const auto *attribute = attribute_by_type(primitive, cgltf_attribute_type_position);
             const auto *accessor = attribute->data;
-            const auto *buffer_view = accessor->buffer_view;
-            const auto *buffer = buffer_view->buffer;
-            const auto *data = reinterpret_cast<char *> (buffer->data);
+            const auto *data = reinterpret_cast<char *> (accessor->buffer_view->buffer->data);
 
-            const auto &count = accessor->count;
-
-            ASSERT(count == my_mesh.vertex_count, "Invalid vertex count for attribute {}!", attribute->name);
+            ASSERT(accessor->count == my_mesh.vertex_count, "Invalid vertex count for attribute {}!", attribute->name);
             ASSERT(accessor->component_type == cgltf_component_type_r_32f, "Invalid component type in accessor of attribute {}!", attribute->name);
             ASSERT(accessor->type == cgltf_type_vec3, "Invalid component count in accessor of attribute {}!", attribute->name);
 
-            const auto offset = accessor->offset + buffer_view->offset;
-            const auto stride = accessor->stride ? accessor->stride : component_size(accessor) * component_count(accessor);
+            const auto offset = accessor_offset(accessor);
+            const auto stride = accessor_stride(accessor);
 
             for (cgltf_size i = 0; i < accessor->count; ++i)
             {
@@ -125,21 +105,19 @@ namespace gltf
             }
         }
 
-        // load joint indices
+        void load_joint_indices (model::SkinnedMesh &my_mesh, const cgltf_primitive &primitive, const cgltf_skin &skin, std::map<std::string, int8_t> &joint_map)
         {
-            const auto *attribute = attributes[joint_index_layout];
+            const auto *attribute = attribute_by_type(primitive, cgltf_attribute_type_joints);
             const auto *accessor = attribute->data;
             const auto *buffer_view = accessor->buffer_view;
             const auto *buffer = buffer_view->buffer;
             const auto *data = reinterpret_cast<const char *> (buffer->data);
 
-            const auto &count = accessor->count;
-
-            ASSERT(count == my_mesh.vertex_count, "Invalid vertex count for attribute {}!", attribute->name);
+            ASSERT(accessor->count == my_mesh.vertex_count, "Invalid vertex count for attribute {}!", attribute->name);
             ASSERT(accessor->type == cgltf_type_vec4, "Invalid component count in accessor of attribute {}!", attribute->name);
 
-            const auto offset = accessor->offset + buffer_view->offset;
-            const auto stride = accessor->stride ? accessor->stride : component_size(accessor) * component_count(accessor);
+            const auto offset = accessor_offset(accessor);
+            const auto stride = accessor_stride(accessor);
 
             switch (accessor->component_type)
             {
@@ -238,22 +216,20 @@ namespace gltf
             }
         }
 
-        // load joint weights
+        void load_joint_weights (model::SkinnedMesh &my_mesh, const cgltf_primitive &primitive)
         {
-            const auto *attribute = attributes[joint_weight_layout];
+            const auto *attribute = attribute_by_type(primitive, cgltf_attribute_type_weights);
             const auto *accessor = attribute->data;
             const auto *buffer_view = accessor->buffer_view;
             const auto *buffer = buffer_view->buffer;
             const auto *data = reinterpret_cast<const char *> (buffer->data);
 
-            const auto &count = accessor->count;
-
-            ASSERT(count == my_mesh.vertex_count, "Invalid vertex count for attribute {}!", attribute->name);
+            ASSERT(accessor->count == my_mesh.vertex_count, "Invalid vertex count for attribute {}!", attribute->name);
             ASSERT(accessor->component_type == cgltf_component_type_r_32f, "Invalid component type in accessor of attribute {}!", attribute->name);
             ASSERT(accessor->type == cgltf_type_vec4, "Invalid component count in accessor of attribute {}!", attribute->name);
 
-            const auto offset = accessor->offset + buffer_view->offset;
-            const auto stride = accessor->stride ? accessor->stride : component_size(accessor) * component_count(accessor);
+            const auto offset = accessor_offset(accessor);
+            const auto stride = accessor_stride(accessor);
 
             for (cgltf_size i = 0; i < accessor->count; ++i)
             {
@@ -261,20 +237,18 @@ namespace gltf
             }
         }
 
-        // load indices
+        void load_indices (model::SkinnedMesh &my_mesh, const cgltf_primitive &primitive)
         {
             const auto *accessor = primitive.indices;
             const auto *buffer_view = accessor->buffer_view;
             const auto *buffer = buffer_view->buffer;
             const auto *data = reinterpret_cast<const char *> (buffer->data);
 
-            const auto &count = accessor->count;
-
-            ASSERT(count == my_mesh.index_count, "Invalid index count for primitive!");
+            ASSERT(accessor->count == my_mesh.index_count, "Invalid index count for primitive!");
             ASSERT(accessor->type == cgltf_type_scalar, "Invalid component count in accessor of primitive indices!");
 
-            const auto offset = accessor->offset + buffer_view->offset;
-            const auto stride = accessor->stride ? accessor->stride : component_size(accessor) * component_count(accessor);
+            const auto offset = accessor_offset(accessor);
+            const auto stride = accessor_stride(accessor);
 
             switch (accessor->component_type)
             {
@@ -336,5 +310,35 @@ namespace gltf
                 ASSERT(0, "Asked for component_size of invalid component_type!");
             }
         }
+    }
+
+    void init_mesh (model::SkinnedMesh &my_mesh, cgltf_primitive &primitive)
+    {
+        ASSERT(primitive.attributes_count, "No vertices for mesh!");
+
+        my_mesh.vertex_count = primitive.attributes[0].data->count;
+        my_mesh.index_count = primitive.indices->count;
+
+        my_mesh.vertices = std::make_unique<model::SkinnedMesh::VertexData[]>(my_mesh.vertex_count);
+        my_mesh.indices = std::make_unique<uint32_t[]>(my_mesh.index_count);
+    }
+
+    void load_mesh (const cgltf_mesh &mesh, model::SkinnedMesh &my_mesh, const cgltf_skin &skin, std::map<std::string, int8_t> &joint_map)
+    {
+        using namespace internal;
+
+        ASSERT(mesh.primitives_count == 1, "This loader only supports meshes with one triangle pack!");
+
+        auto &primitive = mesh.primitives[0];
+
+        ASSERT(primitive.indices->type == cgltf_type_scalar, "Index information invalid for mesh!");
+        ASSERT(primitive.type == cgltf_primitive_type_triangles, "This loader only supports triangle meshes!");
+
+        init_mesh(my_mesh, primitive);
+
+        load_vertices(my_mesh, primitive);
+        load_joint_indices(my_mesh, primitive, skin, joint_map);
+        load_joint_weights(my_mesh, primitive);
+        load_indices(my_mesh, primitive);
     }
 }

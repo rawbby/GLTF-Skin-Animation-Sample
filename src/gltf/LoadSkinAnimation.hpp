@@ -7,15 +7,18 @@
 
 #endif
 
+#include <gltf/Types.hpp>
+
 #include <util/Assert.hpp>
-#include <components/SkinAnimation.hpp>
+#include <model/SkinAnimation.hpp>
 
 namespace gltf
 {
-    void init_anim (const cgltf_animation &anim, const cgltf_skin &skin, SkinAnimation &my_anim)
+    void init_anim (const cgltf_animation &anim, const cgltf_skin &skin, model::SkinAnimation &my_anim)
     {
+        using TRS = model::SkinAnimation::TRS;
+
         ASSERT(anim.channels_count > 0, "invalid Animation no channels");
-        using TRS = SkinAnimation::TRS;
 
         my_anim.joint_count = skin.joints_count;
         my_anim.keyframe_count = anim.channels[0].sampler->input->count;
@@ -24,7 +27,7 @@ namespace gltf
         my_anim.keyframes = std::make_unique<TRS[]>(my_anim.joint_count * my_anim.keyframe_count);
     }
 
-    void load_anim (const cgltf_animation &anim, const cgltf_skin &skin, SkinAnimation &my_anim, const std::map<std::string, int8_t> &joint_map)
+    void load_anim (const cgltf_animation &anim, const cgltf_skin &skin, model::SkinAnimation &my_anim, const std::map<std::string, int8_t> &joint_map)
     {
         init_anim(anim, skin, my_anim);
 

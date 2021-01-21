@@ -5,12 +5,14 @@
 #include <cgltf.h>
 #endif
 
+#include <gltf/Types.hpp>
+
 #include <util/Assert.hpp>
 
-#include <components/Skin.hpp>
-#include <components/SkinAnimation.hpp>
-#include <components/GlSkinnedMesh.hpp>
-#include <components/SkinnedMesh.hpp>
+#include <model/Skin.hpp>
+#include <model/SkinAnimation.hpp>
+#include <model/GlSkinnedMesh.hpp>
+#include <model/SkinnedMesh.hpp>
 
 #include <gltf/LoadSkinnedMesh.hpp>
 #include <gltf/LoadSkin.hpp>
@@ -19,8 +21,10 @@
 
 namespace gltf
 {
-    void load_model (GlSkinnedMesh &my_mesh, Skin &my_skin, SkinAnimation &my_anim, std::string_view path)
+    void load_model (model::GlSkinnedMesh &my_mesh, model::Skin &my_skin, model::SkinAnimation &my_anim, std::string_view path)
     {
+        using namespace model;
+
         cgltf_options options{};
         cgltf_data *data = nullptr;
 
@@ -42,7 +46,7 @@ namespace gltf
 
         SkinnedMesh mesh_buffer;
         load_mesh(mesh, mesh_buffer, skin, joint_map);
-        load_gl_mesh(mesh_buffer, my_mesh);
+        load_gl_skinned_mesh(mesh_buffer, my_mesh);
 
         cgltf_free(data);
     }

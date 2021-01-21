@@ -28,16 +28,18 @@ target_sources(${THIS} PRIVATE
         src/glsl/vs.glsl.hpp
         src/glsl/fs.glsl.hpp
 
-        src/components/GlSkinnedMesh.hpp
-        src/components/Skin.hpp
-        src/components/SkinAnimation.hpp
-        src/components/SkinAnimator.hpp
-        src/components/SkinnedMesh.hpp
+        src/model/GlSkinnedMesh.hpp
+        src/model/Skin.hpp
+        src/model/SkinAnimation.hpp
+        src/model/SkinAnimator.hpp
+        src/model/SkinnedMesh.hpp
+        src/model/Types.hpp
 
         src/gltf/GLTFLoader.hpp
         src/gltf/LoadSkin.hpp
         src/gltf/LoadSkinAnimation.hpp
         src/gltf/LoadSkinnedMesh.hpp
+        src/gltf/Types.hpp
 
         src/util/Assert.hpp
         src/util/GLUtils.hpp

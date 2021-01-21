@@ -5,8 +5,10 @@
 #include <cgltf.h>
 #endif
 
+#include <gltf/Types.hpp>
+
 #include <util/Assert.hpp>
-#include <components/Skin.hpp>
+#include <model/Skin.hpp>
 
 namespace gltf
 {
@@ -62,7 +64,7 @@ namespace gltf
         }
     }
 
-    void init_skin (const cgltf_skin &skin, Skin &my_skin)
+    void init_skin (const cgltf_skin &skin, model::Skin &my_skin)
     {
         my_skin.joint_global_inverse = glm::identity<glm::mat4>();
         my_skin.joint_count = static_cast<int8_t>(skin.joints_count);
@@ -70,7 +72,7 @@ namespace gltf
         my_skin.joint_parent_indices = std::make_unique<int8_t[]>(my_skin.joint_count);
     }
 
-    void load_skin (const cgltf_skin &skin, const cgltf_data &data, Skin &my_skin, std::map<std::string, int8_t> &joint_map)
+    void load_skin (const cgltf_skin &skin, const cgltf_data &data, model::Skin &my_skin, std::map<std::string, int8_t> &joint_map)
     {
         init_skin(skin, my_skin);
         ASSERT(skin.joints_count > 0, "Skin has not joints!");
