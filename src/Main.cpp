@@ -24,6 +24,8 @@ int main (const int argc, const char **argv)
     sf::Window window(sf::VideoMode(800, 600), "OpenGL", sf::Style::Default, settings);
     window.setFramerateLimit(144);
 
+    sf::Clock clock{};
+
     glewExperimental = GL_TRUE;
     glewInit();
 
@@ -31,12 +33,20 @@ int main (const int argc, const char **argv)
     glEnable(GL_BLEND);
 
     model::Skin skin{};
-    model::GlSkinnedMesh mesh{};
     model::SkinAnimation anim{};
-    gltf::load_model(skin, mesh, anim, argv[1]);
+    model::GlSkinnedMesh mesh;
+
+    // load the model and release buffer
+    {
+        model::SkinnedMesh mesh_buffer{};
+        gltf::load_model(skin, mesh_buffer, anim, argv[1]);
+
+        model::GlSkinnedMesh::fromSkinnedMesh(mesh, mesh_buffer);
+    }
 
     model::SkinAnimator ator{};
     gltf::init_ator(ator, &skin, &anim);
+
 
     const auto vertex_shader = compile_shader(GL_VERTEX_SHADER, glsl::vs::text);
     const auto fragment_shader = compile_shader(GL_FRAGMENT_SHADER, glsl::fs::text);
@@ -48,7 +58,8 @@ int main (const int argc, const char **argv)
 
     while (window.isOpen())
     {
-        ator.update(0.005f);
+        ator.update(clock.getElapsedTime().asSeconds());
+        clock.restart();
 
         glClearColor(0.6f, 0.75f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

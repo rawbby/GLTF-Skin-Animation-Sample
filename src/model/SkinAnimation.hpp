@@ -23,10 +23,10 @@ namespace model
             [[nodiscard]] TRS mix (const TRS other, float delta) const
             {
                 //@formatter:off
-            return { .rotation    = glm::slerp (rotation,    other.rotation,    delta),
-                     .translation = glm::mix   (translation, other.translation, delta),
-                     .scale       = glm::mix   (scale,       other.scale,       delta) };
-            //@formatter:on
+                return { .rotation    = glm::slerp (rotation,    other.rotation,    delta),
+                         .translation = glm::mix   (translation, other.translation, delta),
+                         .scale       = glm::mix   (scale,       other.scale,       delta) };
+                //@formatter:on
             }
 
             [[nodiscard]] glm::mat4 trs () const

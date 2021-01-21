@@ -39,37 +39,29 @@ class Camera
 {
 private:
 
-    glm::vec3 m_center;
-    glm::vec3 m_up;
-    glm::mat4 m_matrix;
+    glm::vec3 m_center{0.0f, 0.0f, 0.0f};
+    glm::vec3 m_up{0.0f, 1.0f, 0.0f};
+    glm::mat4 m_matrix{};
 
 private:
 
-    float m_rotation_y;
-    float m_rotation_x;
-    float m_distance;
+    float m_rotation_y = 0.0f;
+    float m_rotation_x = 0.0f;
+    float m_distance = 6.0f;
 
-    bool mouse_pressed;
-    sf::Vector2f mouse_position;
+    bool mouse_pressed = false;
+    sf::Vector2f mouse_position{};
 
 private:
 
     [[nodiscard]] glm::vec3 position () const
     {
-        return glm::rotateY(glm::rotateX(glm::vec3{0.0f, 0.0f, m_distance}, glm::radians(m_rotation_x)), glm::radians(m_rotation_y));
-        // return glm::rotateY(glm::rotateX(glm::vec3{0.0f, 0.0f, -6.0f}, m_rotation_x), m_rotation_y);
+        return glm::rotateY(glm::rotateX(glm::vec3{0.0f, 0.0f, -m_distance}, glm::radians(m_rotation_x)), glm::radians(m_rotation_y));
     }
 
 public:
 
     explicit Camera ()
-            : m_center(0.0f, 5.0f, 0.0f)
-            , m_up(0.0f, 1.0f, 0.0f)
-            , m_rotation_y(0.0f)
-            , m_rotation_x(0.0f)
-            , m_distance(6.0f)
-            , mouse_pressed(false)
-            , mouse_position()
     {
         m_matrix = glm::lookAt(position(), m_center, m_up);
     }
@@ -78,20 +70,20 @@ public:
     {
         if (mouse_pressed)
         {
-            m_rotation_y += static_cast<float> (sf::Mouse::getPosition().x - mouse_position.x) * +0.5f;
-            m_rotation_x += static_cast<float> (sf::Mouse::getPosition().y - mouse_position.y) * -0.5f;
+             m_rotation_x += static_cast<float> (sf::Mouse::getPosition().y - mouse_position.y) * 0.4f;
+             m_rotation_y += static_cast<float> (sf::Mouse::getPosition().x - mouse_position.x) * -0.4f;
 
-            //@formatter:off
-            while (m_rotation_y < -180.0f) m_rotation_y += 360.0f;
-            while (m_rotation_y > 180.0f)  m_rotation_y -= 360.0f;
-            m_rotation_x = m_rotation_x > 80.0f ? 80.0f : m_rotation_x;
-            m_rotation_x = m_rotation_x < -80.0f ? -80.0f : m_rotation_x;
-            //@formatter:on
+             //@formatter:off
+             while (m_rotation_y < -180.0f) m_rotation_y += 360.0f;
+             while (m_rotation_y > 180.0f)  m_rotation_y -= 360.0f;
+             m_rotation_x = m_rotation_x > 50.0f ? 50.0f : m_rotation_x;
+             m_rotation_x = m_rotation_x < -50.0f ? -50.0f : m_rotation_x;
+             //@formatter:on
 
-            m_matrix = glm::lookAt(position(), m_center, m_up);
+             m_matrix = glm::lookAt(position(), m_center, m_up);
 
-            mouse_position.x = sf::Mouse::getPosition().x;
-            mouse_position.y = sf::Mouse::getPosition().y;
+             mouse_position.x = sf::Mouse::getPosition().x;
+             mouse_position.y = sf::Mouse::getPosition().y;
         }
 
         if (event.type == sf::Event::MouseButtonPressed)

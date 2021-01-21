@@ -2,9 +2,7 @@
 
 #ifndef CGLTF_IMPLEMENTATION
 #define CGLTF_IMPLEMENTATION
-
 #include <cgltf.h>
-
 #endif
 
 #include <gltf/Types.hpp>
@@ -37,12 +35,11 @@ namespace gltf
 
         for (cgltf_size i = 0; i < input_accessor->count; ++i)
         {
-            auto *time_stamp_data = &(reinterpret_cast< char *>(input_accessor->buffer_view->buffer->data)[input_offset]);
-            auto *timestamp = reinterpret_cast< float *>(time_stamp_data);
+            auto *time_stamp_data = &(reinterpret_cast<char *>(input_accessor->buffer_view->buffer->data)[input_offset]);
+            auto *timestamp = reinterpret_cast<float *>(time_stamp_data);
             my_anim.timestamps[i] = timestamp[i];
         }
 
-        // get local_transformation
         for (cgltf_size channel_j = 0; channel_j < anim.channels_count; ++channel_j)
         {
             auto &channel = anim.channels[channel_j];

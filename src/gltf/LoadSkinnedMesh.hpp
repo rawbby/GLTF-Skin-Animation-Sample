@@ -21,7 +21,6 @@ namespace gltf
         {
             auto *attribute = attribute_by_type(primitive, cgltf_attribute_type_position);
             auto *accessor = attribute->data;
-            auto *data = reinterpret_cast<char *> (accessor->buffer_view->buffer->data);
 
             ASSERT(accessor->count == my_mesh.vertex_count, "Invalid vertex count for attribute {}!", attribute->name);
             ASSERT(accessor->component_type == cgltf_component_type_r_32f, "Invalid component type in accessor of attribute {}!", attribute->name);
@@ -29,6 +28,8 @@ namespace gltf
 
             auto offset = accessor_offset(accessor);
             auto stride = accessor_stride(accessor);
+
+            auto *data = reinterpret_cast<char *> (accessor->buffer_view->buffer->data);
 
             for (cgltf_size i = 0; i < accessor->count; ++i)
             {
@@ -40,9 +41,6 @@ namespace gltf
         {
             auto *attribute = attribute_by_type(primitive, cgltf_attribute_type_joints);
             auto *accessor = attribute->data;
-            auto *buffer_view = accessor->buffer_view;
-            auto *buffer = buffer_view->buffer;
-            auto *data = reinterpret_cast< char *> (buffer->data);
 
             ASSERT(accessor->count == my_mesh.vertex_count, "Invalid vertex count for attribute {}!", attribute->name);
             ASSERT(accessor->type == cgltf_type_vec4, "Invalid component count in accessor of attribute {}!", attribute->name);
@@ -50,13 +48,15 @@ namespace gltf
             auto offset = accessor_offset(accessor);
             auto stride = accessor_stride(accessor);
 
+            auto *data = reinterpret_cast<char *> (accessor->buffer_view->buffer->data);
+
             switch (accessor->component_type)
             {
                 case cgltf_component_type_r_8:
 
                     for (cgltf_size i = 0; i < accessor->count; ++i)
                     {
-                        auto *joint_index = reinterpret_cast< model::joint_index_t *> (&(data[offset + i * stride]));
+                        auto *joint_index = reinterpret_cast<model::joint_index_t *> (&(data[offset + i * stride]));
                         my_mesh.vertices[i].joint_index[0] = static_cast<float> (joint_index[0]);
                         my_mesh.vertices[i].joint_index[1] = static_cast<float> (joint_index[1]);
                         my_mesh.vertices[i].joint_index[2] = static_cast<float> (joint_index[2]);
@@ -68,7 +68,7 @@ namespace gltf
 
                     for (cgltf_size i = 0; i < accessor->count; ++i)
                     {
-                        auto *joint_index = reinterpret_cast< model::joint_index_t *> (&(data[offset + i * stride]));
+                        auto *joint_index = reinterpret_cast<model::joint_index_t *> (&(data[offset + i * stride]));
                         my_mesh.vertices[i].joint_index[0] = static_cast<float> (joint_index[0]);
                         my_mesh.vertices[i].joint_index[1] = static_cast<float> (joint_index[1]);
                         my_mesh.vertices[i].joint_index[2] = static_cast<float> (joint_index[2]);
@@ -80,7 +80,7 @@ namespace gltf
 
                     for (cgltf_size i = 0; i < accessor->count; ++i)
                     {
-                        auto *joint_index = reinterpret_cast< int16_t *> (&(data[offset + i * stride]));
+                        auto *joint_index = reinterpret_cast<int16_t *> (&(data[offset + i * stride]));
                         my_mesh.vertices[i].joint_index[0] = static_cast<float> (joint_index[0]);
                         my_mesh.vertices[i].joint_index[1] = static_cast<float> (joint_index[1]);
                         my_mesh.vertices[i].joint_index[2] = static_cast<float> (joint_index[2]);
@@ -92,7 +92,7 @@ namespace gltf
 
                     for (cgltf_size i = 0; i < accessor->count; ++i)
                     {
-                        auto *joint_index = reinterpret_cast< uint16_t *> (&(data[offset + i * stride]));
+                        auto *joint_index = reinterpret_cast<uint16_t *> (&(data[offset + i * stride]));
                         my_mesh.vertices[i].joint_index[0] = static_cast<float> (joint_index[0]);
                         my_mesh.vertices[i].joint_index[1] = static_cast<float> (joint_index[1]);
                         my_mesh.vertices[i].joint_index[2] = static_cast<float> (joint_index[2]);
@@ -104,7 +104,7 @@ namespace gltf
 
                     for (cgltf_size i = 0; i < accessor->count; ++i)
                     {
-                        auto *joint_index = reinterpret_cast< uint32_t *> (&(data[offset + i * stride]));
+                        auto *joint_index = reinterpret_cast<uint32_t *> (&(data[offset + i * stride]));
                         my_mesh.vertices[i].joint_index[0] = static_cast<float> (joint_index[0]);
                         my_mesh.vertices[i].joint_index[1] = static_cast<float> (joint_index[1]);
                         my_mesh.vertices[i].joint_index[2] = static_cast<float> (joint_index[2]);
@@ -116,7 +116,7 @@ namespace gltf
 
                     for (cgltf_size i = 0; i < accessor->count; ++i)
                     {
-                        auto *joint_index = reinterpret_cast< float *> (&(data[offset + i * stride]));
+                        auto *joint_index = reinterpret_cast<float *> (&(data[offset + i * stride]));
                         my_mesh.vertices[i].joint_index[0] = joint_index[0];
                         my_mesh.vertices[i].joint_index[1] = joint_index[1];
                         my_mesh.vertices[i].joint_index[2] = joint_index[2];
@@ -146,9 +146,6 @@ namespace gltf
         {
             auto *attribute = attribute_by_type(primitive, cgltf_attribute_type_weights);
             auto *accessor = attribute->data;
-            auto *buffer_view = accessor->buffer_view;
-            auto *buffer = buffer_view->buffer;
-            auto *data = reinterpret_cast< char *> (buffer->data);
 
             ASSERT(accessor->count == my_mesh.vertex_count, "Invalid vertex count for attribute {}!", attribute->name);
             ASSERT(accessor->component_type == cgltf_component_type_r_32f, "Invalid component type in accessor of attribute {}!", attribute->name);
@@ -157,9 +154,11 @@ namespace gltf
             auto offset = accessor_offset(accessor);
             auto stride = accessor_stride(accessor);
 
+            auto *data = reinterpret_cast<char *> (accessor->buffer_view->buffer->data);
+
             for (cgltf_size i = 0; i < accessor->count; ++i)
             {
-                my_mesh.vertices[i].joint_weight = *(reinterpret_cast< glm::vec4 *> (&(data[offset + i * stride])));
+                my_mesh.vertices[i].joint_weight = *(reinterpret_cast<glm::vec4 *> (&(data[offset + i * stride])));
             }
         }
 
@@ -168,7 +167,6 @@ namespace gltf
             auto *accessor = primitive.indices;
             auto *buffer_view = accessor->buffer_view;
             auto *buffer = buffer_view->buffer;
-            auto *data = reinterpret_cast< char *> (buffer->data);
 
             ASSERT(accessor->count == my_mesh.index_count, "Invalid index count for primitive!");
             ASSERT(accessor->type == cgltf_type_scalar, "Invalid component count in accessor of primitive indices!");
@@ -176,13 +174,15 @@ namespace gltf
             auto offset = accessor_offset(accessor);
             auto stride = accessor_stride(accessor);
 
+            auto *data = reinterpret_cast<char *> (buffer->data);
+
             switch (accessor->component_type)
             {
                 case cgltf_component_type_r_8:
 
                     for (cgltf_size i = 0; i < accessor->count; ++i)
                     {
-                        auto *index = reinterpret_cast< model::joint_index_t *> (&(data[offset + i * stride]));
+                        auto *index = reinterpret_cast<model::joint_index_t *> (&(data[offset + i * stride]));
                         my_mesh.indices[i] = static_cast<uint32_t> (static_cast<uint16_t> (*index));
                     }
                     break;
@@ -191,7 +191,7 @@ namespace gltf
 
                     for (cgltf_size i = 0; i < accessor->count; ++i)
                     {
-                        auto *index = reinterpret_cast< uint8_t *> (&(data[offset + i * stride]));
+                        auto *index = reinterpret_cast<uint8_t *> (&(data[offset + i * stride]));
                         my_mesh.indices[i] = static_cast<uint32_t> (*index);
                     }
                     break;
@@ -200,7 +200,7 @@ namespace gltf
 
                     for (cgltf_size i = 0; i < accessor->count; ++i)
                     {
-                        auto *index = reinterpret_cast< int16_t *> (&(data[offset + i * stride]));
+                        auto *index = reinterpret_cast<int16_t *> (&(data[offset + i * stride]));
                         my_mesh.indices[i] = static_cast<uint32_t> (*index);
                     }
                     break;
@@ -209,7 +209,7 @@ namespace gltf
 
                     for (cgltf_size i = 0; i < accessor->count; ++i)
                     {
-                        auto *index = reinterpret_cast< uint16_t *> (&(data[offset + i * stride]));
+                        auto *index = reinterpret_cast<uint16_t *> (&(data[offset + i * stride]));
                         my_mesh.indices[i] = static_cast<uint32_t> (*index);
                     }
                     break;
@@ -218,7 +218,7 @@ namespace gltf
 
                     for (cgltf_size i = 0; i < accessor->count; ++i)
                     {
-                        auto *index = reinterpret_cast< uint32_t *> (&(data[offset + i * stride]));
+                        auto *index = reinterpret_cast<uint32_t *> (&(data[offset + i * stride]));
                         my_mesh.indices[i] = static_cast<uint32_t> (*index);
                     }
                     break;
@@ -227,7 +227,7 @@ namespace gltf
 
                     for (cgltf_size i = 0; i < accessor->count; ++i)
                     {
-                        auto *index = reinterpret_cast< float *> (&(data[offset + i * stride]));
+                        auto *index = reinterpret_cast<float *> (&(data[offset + i * stride]));
                         my_mesh.indices[i] = static_cast<uint32_t> (*index);
                     }
                     break;
@@ -251,8 +251,6 @@ namespace gltf
 
     void load_mesh (cgltf_mesh &mesh, model::SkinnedMesh &my_mesh, cgltf_skin &skin, internal::joint_map_t &joint_map)
     {
-        using namespace internal;
-
         ASSERT(mesh.primitives_count == 1, "This loader only supports meshes with one triangle pack!");
 
         auto &primitive = mesh.primitives[0];
@@ -262,9 +260,9 @@ namespace gltf
 
         init_mesh(my_mesh, primitive);
 
-        load_vertices(my_mesh, primitive);
-        load_joint_indices(my_mesh, primitive, skin, joint_map);
-        load_joint_weights(my_mesh, primitive);
-        load_indices(my_mesh, primitive);
+        internal::load_vertices(my_mesh, primitive);
+        internal::load_joint_indices(my_mesh, primitive, skin, joint_map);
+        internal::load_joint_weights(my_mesh, primitive);
+        internal::load_indices(my_mesh, primitive);
     }
 }

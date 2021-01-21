@@ -2,12 +2,11 @@
 
 #ifndef CGLTF_IMPLEMENTATION
 #define CGLTF_IMPLEMENTATION
-
 #include <cgltf.h>
-
 #endif
 
 #include <gltf/Types.hpp>
+#include <gltf/Util.hpp>
 
 #include <gltf/LoadModel.hpp>
 #include <gltf/LoadSkin.hpp>

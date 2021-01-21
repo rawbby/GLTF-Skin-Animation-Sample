@@ -2,12 +2,12 @@
 
 #include <spdlog/spdlog.h>
 
-#define ASSERT(CONDITION, MESSAGE, ...) \
-    if (!(CONDITION))                   \
-    {                                   \
+#define ASSERT(CONDITION, MESSAGE, ...)   \
+    if (!(CONDITION))                     \
+    {                                     \
         spdlog::error("Assertion (file: {}, line: {}) \"{}\" failed! message: " MESSAGE, __FILE__, __LINE__, #CONDITION, __VA_ARGS__); \
-        exit(-1);                       \
-    }                                   \
+        exit(-1);                         \
+    }                                     \
     (void) 0
 
 #define ASSERT_OPEN_GL_STATUS()           \
