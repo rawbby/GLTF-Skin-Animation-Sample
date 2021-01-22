@@ -16,7 +16,9 @@ namespace gltf
     {
         using TRS = model::SkinAnimation::TRS;
 
-        ASSERT(anim.channels_count > 0, "invalid Animation no channels");
+        ASSERT(anim.channels_count, "Animation needs to have channels!");
+        ASSERT(anim.channels[0].sampler->input->count, "Animation needs to have keyframes!");
+        ASSERT(skin.joints_count, "Skin needs to have joints!");
 
         my_anim.joint_count = skin.joints_count;
         my_anim.keyframe_count = anim.channels[0].sampler->input->count;
@@ -29,56 +31,48 @@ namespace gltf
     {
         init_anim(anim, skin, my_anim);
 
-        ASSERT(anim.channels_count > 0, "invalid Animation no channels");
         auto *input_accessor = anim.channels[0].sampler->input;
-        auto input_offset = input_accessor->offset + input_accessor->buffer_view->offset;
-
-        for (cgltf_size i = 0; i < input_accessor->count; ++i)
+        for (const auto &[i, data] : internal::Accessor<float>{input_accessor})
         {
-            auto *time_stamp_data = &(reinterpret_cast<char *>(input_accessor->buffer_view->buffer->data)[input_offset]);
-            auto *timestamp = reinterpret_cast<float *>(time_stamp_data);
-            my_anim.timestamps[i] = timestamp[i];
+            my_anim.timestamps[i] = *data;
         }
 
-        for (cgltf_size channel_j = 0; channel_j < anim.channels_count; ++channel_j)
+        for (size_t i = 0; i < anim.channels_count; ++i)
         {
-            auto &channel = anim.channels[channel_j];
-            auto index = joint_map.at(channel.target_node);
-
+            auto &channel = anim.channels[i];
             auto *output_accessor = channel.sampler->output;
-            auto output_offset = output_accessor->offset + output_accessor->buffer_view->offset;
+            auto joint_index = joint_map.at(channel.target_node);
 
-            ASSERT(channel.sampler->input == input_accessor, "only support anim with same timestamps");
+            ASSERT(input_accessor == channel.sampler->input, "Only support animations with same timestamp accessor for every channel!");
 
-            for (cgltf_size i = 0; i < output_accessor->count; ++i)
+            switch (channel.target_path)
             {
-                auto *animation_data = &(reinterpret_cast<char *>(output_accessor->buffer_view->buffer->data)[output_offset]);
-                switch (channel.target_path)
-                {
-                    case cgltf_animation_path_type_rotation :
+                case cgltf_animation_path_type_rotation:
+
+                    for (const auto &[j, data] : internal::Accessor<glm::quat>{output_accessor})
                     {
-                        ASSERT(output_accessor->stride == 16, "stride bigger zero ");
-                        auto *quat_data = reinterpret_cast<glm::quat *>(animation_data);
-                        my_anim.keyframes[i * skin.joints_count + index].rotation = quat_data[i];
-                        break;
+                        my_anim.keyframes[joint_index + j * skin.joints_count].rotation = *data;
                     }
-                    case cgltf_animation_path_type_translation :
+                    break;
+
+                case cgltf_animation_path_type_translation:
+
+                    for (const auto &[j, data] : internal::Accessor<glm::vec3>{output_accessor})
                     {
-                        ASSERT(output_accessor->stride == 12, "stride bigger zero ");
-                        auto *vec3_data = reinterpret_cast<glm::vec3 *>(animation_data);
-                        my_anim.keyframes[i * skin.joints_count + index].translation = vec3_data[i];
-                        break;
+                        my_anim.keyframes[joint_index + j * skin.joints_count].translation = *data;
                     }
-                    case cgltf_animation_path_type_scale :
+                    break;
+
+                case cgltf_animation_path_type_scale:
+
+                    for (const auto &[j, data] : internal::Accessor<glm::vec3>{output_accessor})
                     {
-                        ASSERT(output_accessor->stride == 12, "stride bigger zero ");
-                        auto *vec3_data = reinterpret_cast<glm::vec3 *>(animation_data);
-                        my_anim.keyframes[i * skin.joints_count + index].scale = vec3_data[i];
-                        break;
+                        my_anim.keyframes[joint_index + j * skin.joints_count].scale = *data;
                     }
-                    default:
-                    ASSERT(0, "unsupported channel path");
-                }
+                    break;
+
+                default:
+                ASSERT(0, "Unsupported channel path {}", channel.target_path);
             }
         }
     }

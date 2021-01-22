@@ -21,7 +21,7 @@ namespace gltf
     void init_ator (model::SkinAnimator &my_ator, model::Skin *my_skin, model::SkinAnimation *my_anim)
     {
         ASSERT(my_skin->joint_count, "Animator will loop infinite when joint_count is set to zero!");
-        ASSERT(static_cast<uint16_t> (my_skin->joint_count) == my_anim->joint_count, "Skin and SkinAnimation are not compatible!");
+        ASSERT(my_skin->joint_count == my_anim->joint_count, "Skin and SkinAnimation are not compatible!");
 
         my_ator.current_time = 0.0f;
         my_ator.joint_count = my_skin->joint_count;
