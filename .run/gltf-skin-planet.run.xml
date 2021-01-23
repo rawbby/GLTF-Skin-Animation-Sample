@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="gltf-skin-planet" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="$ContentRoot$/res/planet.gltf" REDIRECT_INPUT="false" ELEVATE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="GLTF - Skin" TARGET_NAME="gltf-skin-loader" CONFIG_NAME="debug" RUN_TARGET_PROJECT_NAME="GLTF - Skin" RUN_TARGET_NAME="gltf-skin-loader">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>

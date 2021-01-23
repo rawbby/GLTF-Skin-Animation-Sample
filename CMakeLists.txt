@@ -17,13 +17,11 @@ conan_cmake_run(REQUIRES
 
 set(THIS gltf-skin)
 
-add_executable(${THIS} src/gltf/Util.hpp)
-set_compile_options(${THIS})
-set_compile_warnings(${THIS})
+add_library(${THIS} INTERFACE)
 
-target_include_directories(${THIS} PRIVATE src)
+target_include_directories(${THIS} INTERFACE src)
 
-target_sources(${THIS} PRIVATE
+target_sources(${THIS} INTERFACE
 
         src/glsl/vs.glsl.hpp
         src/glsl/fs.glsl.hpp
@@ -40,18 +38,26 @@ target_sources(${THIS} PRIVATE
         src/gltf/LoadSkinAnimation.hpp
         src/gltf/LoadSkinnedMesh.hpp
         src/gltf/Types.hpp
+        src/gltf/Util.hpp
 
         src/util/Assert.hpp
         src/util/GLUtils.hpp
-        src/util/SfmlComponents.hpp
+        src/util/SfmlComponents.hpp)
 
-        src/Main.cpp)
+target_link_libraries(${THIS} INTERFACE
+        CONAN_PKG::glm
+        CONAN_PKG::spdlog
+        CONAN_PKG::cgltf)
 
+set(THIS gltf-skin-loader)
+add_executable(${THIS})
+set_compile_options(${THIS})
+set_compile_warnings(${THIS})
+
+target_sources(${THIS} PRIVATE src/Main.cpp)
 target_link_libraries(${THIS} PRIVATE
         $<${WIN32}:opengl32>
         $<$<NOT:${WIN32}>:GL>
         CONAN_PKG::glew
-        CONAN_PKG::glm
         CONAN_PKG::sfml
-        CONAN_PKG::spdlog
-        CONAN_PKG::cgltf)
+        gltf-skin)
