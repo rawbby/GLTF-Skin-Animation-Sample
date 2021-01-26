@@ -13,8 +13,11 @@
 #include <model/Skin.hpp>
 #include <model/SkinAnimation.hpp>
 #include <model/SkinAnimator.hpp>
+#include <model/SkinBlendAnimator.hpp>
 
 #include <gltf/GLTFLoader.hpp>
+
+#include <cmath>
 
 int main (const int argc, const char **argv)
 {
@@ -32,23 +35,25 @@ int main (const int argc, const char **argv)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
-    model::Skin skin{};
-    model::SkinAnimation anim{};
-    model::GlSkinnedMesh mesh;
+    auto data = gltf::load_gltf(argv[1]);
 
-    // load the model and release buffer
-    {
-        model::SkinnedMesh mesh_buffer{};
-        gltf::load_model(skin, mesh_buffer, anim, argv[1]);
+    gltf::internal::SkinExtra skin_extra{};
+    auto skin = gltf::load_single_skin(data.get(), skin_extra);
+    auto mesh_buffer = gltf::load_single_mesh(data.get(), skin_extra);
 
-        model::GlSkinnedMesh::fromSkinnedMesh(mesh, mesh_buffer);
-    }
+    gltf::internal::AnimationsExtra anims_extra{};
+    auto anims = gltf::load_animations(data.get(), skin_extra, anims_extra);
 
-    model::SkinAnimator ator{};
-    gltf::init_ator(ator, &skin, &anim);
+    auto mesh = model::GlSkinnedMesh::fromSkinnedMesh(mesh_buffer);
+    auto ator = model::SkinBlendAnimator::create(&skin, anims.get(), anims_extra.animation_count);
 
+    ator.update(
+            anims_extra.animation_map["Wabble"],
+            anims_extra.animation_map["move"],
+            0,
+            0.5f, 0.5f, 0.0f);
 
-    const auto vertex_shader = compile_shader(GL_VERTEX_SHADER, glsl::vs::text);
+    const auto vertex_shader = compile_shader(GL_VERTEX_SHADER, glsl::vs::blend_animator);
     const auto fragment_shader = compile_shader(GL_FRAGMENT_SHADER, glsl::fs::text);
     const auto program = compile_program(vertex_shader, fragment_shader);
 
@@ -70,7 +75,13 @@ int main (const int argc, const char **argv)
         glUniformMatrix4fv(glGetUniformLocation(program, "u_projection_matrix"), 1, GL_FALSE, glm::value_ptr(projection.matrix() * camera.matrix()));
         glUniformMatrix4fv(glGetUniformLocation(program, "u_model_view_matrix"), 1, GL_FALSE, glm::value_ptr(glm::identity<glm::mat4>()));
 
-        glUniformMatrix4fv(glGetUniformLocation(program, "u_joints"), skin.joint_count, GL_FALSE, glm::value_ptr(*ator.joints));
+        glUniform1f(glGetUniformLocation(program, "u_animation_weight_0"), ator.animation_weights[0]);
+        glUniform1f(glGetUniformLocation(program, "u_animation_weight_1"), ator.animation_weights[1]);
+        glUniform1f(glGetUniformLocation(program, "u_animation_weight_2"), ator.animation_weights[2]);
+
+        glUniformMatrix4fv(glGetUniformLocation(program, "u_animation_joints_0"), skin.joint_count, GL_FALSE, glm::value_ptr(*ator.joints[0]));
+        glUniformMatrix4fv(glGetUniformLocation(program, "u_animation_joints_1"), skin.joint_count, GL_FALSE, glm::value_ptr(*ator.joints[1]));
+        glUniformMatrix4fv(glGetUniformLocation(program, "u_animation_joints_2"), skin.joint_count, GL_FALSE, glm::value_ptr(*ator.joints[2]));
 
         glDrawElements(GL_TRIANGLES, mesh.index_count, GL_UNSIGNED_INT, nullptr);
 

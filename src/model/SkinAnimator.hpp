@@ -1,14 +1,6 @@
 #pragma once
 
-#include <model/Types.hpp>
-
-#include <model/Skin.hpp>
-#include <model/GlSkinnedMesh.hpp>
-#include <model/SkinAnimation.hpp>
-
-#include <glm/vec3.hpp>
-#include <glm/matrix.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include <util/Assert.hpp>
 
 #include <memory>
 #include <cstdint>
@@ -25,6 +17,26 @@ namespace model
 
         size_t joint_count = 0;
         float current_time = 0.0f;
+
+    public:
+
+        static SkinAnimator create (Skin *skin, SkinAnimation *anim)
+        {
+            ASSERT(skin, "Animator can not animate nullptr skin!");
+            ASSERT(anim, "Animator can not animate nullptr animation!");
+
+            ASSERT(skin->joint_count, "Animator will loop infinite when joint_count is set to zero!");
+            ASSERT(skin->joint_count == anim->joint_count, "Skin and SkinAnimation are not compatible!");
+
+            SkinAnimator ator;
+            ator.skin = skin;
+            ator.anim = anim;
+            ator.internal_joints =std::make_unique<glm::mat4[]>(static_cast<size_t> (skin->joint_count) + 1);
+            ator.joints = &(ator.internal_joints[1]);
+            ator.joint_count = skin->joint_count;
+            ator.current_time = 0.0f;
+            return ator;
+        }
 
     private:
 
@@ -82,7 +94,7 @@ namespace model
                 {
                     if (current_time < anim->timestamps[i])
                     {
-                        const auto t0 = anim->timestamps[i-1];
+                        const auto t0 = anim->timestamps[i - 1];
                         const auto t1 = anim->timestamps[i];
                         const auto d = (current_time - t0) / (t1 - t0);
 

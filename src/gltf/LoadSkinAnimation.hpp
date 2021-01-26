@@ -12,68 +12,73 @@
 
 namespace gltf
 {
-    void init_anim (cgltf_animation &anim, cgltf_skin &skin, model::SkinAnimation &my_anim)
+    std::unique_ptr<model::SkinAnimation[]> load_animations (cgltf_data *data, const internal::SkinExtra &skin_extra, internal::AnimationsExtra &animations_extra)
     {
-        using TRS = model::SkinAnimation::TRS;
+        const auto &skin = data->skins[skin_extra.skin_index];
+        const auto &joint_map = skin_extra.joint_map;
 
-        ASSERT(anim.channels_count, "Animation needs to have channels!");
-        ASSERT(anim.channels[0].sampler->input->count, "Animation needs to have keyframes!");
-        ASSERT(skin.joints_count, "Skin needs to have joints!");
+        ASSERT(data->animations_count, "Can not load animations, if there are no animations at all!");
+        animations_extra.animation_count = data->animations_count;
 
-        my_anim.joint_count = skin.joints_count;
-        my_anim.keyframe_count = anim.channels[0].sampler->input->count;
-
-        my_anim.timestamps = std::make_unique<float[]>(my_anim.keyframe_count);
-        my_anim.keyframes = std::make_unique<TRS[]>(my_anim.joint_count * my_anim.keyframe_count);
-    }
-
-    void load_anim (cgltf_animation &anim, cgltf_skin &skin, model::SkinAnimation &my_anim, internal::joint_map_t &joint_map)
-    {
-        init_anim(anim, skin, my_anim);
-
-        auto *input_accessor = anim.channels[0].sampler->input;
-        for (const auto &[i, data] : internal::Accessor<float>{input_accessor})
+        auto my_anims = std::make_unique<model::SkinAnimation[]>(data->animations_count);
+        for (size_t i = 0; i < data->animations_count; ++i)
         {
-            my_anim.timestamps[i] = *data;
-        }
+            auto &anim = data->animations[i];
+            auto &my_anim = my_anims[i];
+            animations_extra.animation_map[anim.name] = i;
 
-        for (size_t i = 0; i < anim.channels_count; ++i)
-        {
-            auto &channel = anim.channels[i];
-            auto *output_accessor = channel.sampler->output;
-            auto joint_index = joint_map.at(channel.target_node);
+            ASSERT(anim.channels_count, "Can not load animation without channels!");
+            ASSERT(anim.channels[i].sampler->input->count > 1, "Can not load animation with less than two keyframes!");
+            my_anim = model::SkinAnimation::prepare(anim.channels[i].sampler->input->count, skin.joints_count);
 
-            ASSERT(input_accessor == channel.sampler->input, "Only support animations with same timestamp accessor for every channel!");
-
-            switch (channel.target_path)
+            auto *input_accessor = anim.channels[0].sampler->input;
+            for (const auto &[j, data] : internal::Accessor<float>{input_accessor})
             {
-                case cgltf_animation_path_type_rotation:
+                my_anim.timestamps[j] = *data;
+            }
 
-                    for (const auto &[j, data] : internal::Accessor<glm::quat>{output_accessor})
-                    {
-                        my_anim.keyframes[joint_index + j * skin.joints_count].rotation = *data;
-                    }
-                    break;
+            for (size_t j = 0; j < anim.channels_count; ++j)
+            {
+                auto &channel = anim.channels[j];
+                auto *output_accessor = channel.sampler->output;
 
-                case cgltf_animation_path_type_translation:
+                auto joint_index = internal::joint_index(channel.target_node, skin);
+                joint_index = joint_map.at(joint_index);
 
-                    for (const auto &[j, data] : internal::Accessor<glm::vec3>{output_accessor})
-                    {
-                        my_anim.keyframes[joint_index + j * skin.joints_count].translation = *data;
-                    }
-                    break;
+                ASSERT(input_accessor == channel.sampler->input, "Only support animations with same timestamp accessor for every channel!");
 
-                case cgltf_animation_path_type_scale:
+                switch (channel.target_path)
+                {
+                    case cgltf_animation_path_type_rotation:
 
-                    for (const auto &[j, data] : internal::Accessor<glm::vec3>{output_accessor})
-                    {
-                        my_anim.keyframes[joint_index + j * skin.joints_count].scale = *data;
-                    }
-                    break;
+                        for (const auto &[k, data] : internal::Accessor<glm::quat>{output_accessor})
+                        {
+                            my_anim.keyframes[joint_index + k * skin.joints_count].rotation = *data;
+                        }
+                        break;
 
-                default:
-                ASSERT(0, "Unsupported channel path {}", channel.target_path);
+                    case cgltf_animation_path_type_translation:
+
+                        for (const auto &[k, data] : internal::Accessor<glm::vec3>{output_accessor})
+                        {
+                            my_anim.keyframes[joint_index + k * skin.joints_count].translation = *data;
+                        }
+                        break;
+
+                    case cgltf_animation_path_type_scale:
+
+                        for (const auto &[k, data] : internal::Accessor<glm::vec3>{output_accessor})
+                        {
+                            my_anim.keyframes[joint_index + k * skin.joints_count].scale = *data;
+                        }
+                        break;
+
+                    default:
+                    ASSERT(0, "Unsupported channel path {}", channel.target_path);
+                }
             }
         }
+
+        return my_anims;
     }
 }

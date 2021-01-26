@@ -1,10 +1,8 @@
 #pragma once
 
-#include <model/Types.hpp>
-
+#include <memory>
 #include <cstdint>
 #include <cstdlib>
-#include <memory>
 
 namespace model
 {
@@ -32,5 +30,15 @@ namespace model
         static constexpr gl_uint_t vertex_layout = 0;
         static constexpr gl_uint_t joint_index_layout = 1;
         static constexpr gl_uint_t joint_weight_layout = 2;
+
+        static SkinnedMesh prepare (size_t vertex_count, size_t index_count)
+        {
+            SkinnedMesh mesh;
+            mesh.vertex_count = vertex_count;
+            mesh.index_count = index_count;
+            mesh.vertices = std::make_unique<VertexData[]>(vertex_count);
+            mesh.indices = std::make_unique<uint32_t[]>(index_count);
+            return mesh;
+        }
     };
 }

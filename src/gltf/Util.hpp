@@ -177,19 +177,19 @@ namespace gltf::internal
         }
     };
 
-    bool in_skin (cgltf_node *&node, cgltf_skin &skin)
+    size_t joint_index (const cgltf_node *node, const cgltf_skin &skin)
     {
         for (size_t j = 0; j < skin.joints_count; ++j)
         {
             if (skin.joints[j] == node)
             {
-                return true;
+                return j;
             }
         }
-        return false;
+        return -1;
     }
 
-    void skin_root_node (cgltf_data &data, cgltf_skin &skin, cgltf_node *&skin_root, cgltf_node *&scene_root)
+    void skin_root_node (const cgltf_data &data, const cgltf_skin &skin, cgltf_node *&skin_root, cgltf_node *&scene_root)
     {
         std::vector<cgltf_node *> todo{};
 
@@ -210,7 +210,7 @@ namespace gltf::internal
                     {
                         auto *child = node->children[k];
 
-                        if (in_skin(child, skin))
+                        if (joint_index(child, skin) != static_cast<size_t> (-1))
                         {
                             skin_root = node;
                             scene_root = scene.nodes[j];

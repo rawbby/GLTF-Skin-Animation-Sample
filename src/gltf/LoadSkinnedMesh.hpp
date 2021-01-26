@@ -32,8 +32,10 @@ namespace gltf
             }
         }
 
-        void load_joint_indices (model::SkinnedMesh &my_mesh, cgltf_primitive &primitive, cgltf_skin &skin, internal::joint_map_t &joint_map)
+        void load_joint_indices (model::SkinnedMesh &my_mesh, cgltf_primitive &primitive, const internal::SkinExtra &skin_extra)
         {
+            const auto &joint_map = skin_extra.joint_map;
+
             auto *attribute = attribute_by_type(primitive, cgltf_attribute_type_joints);
             auto *accessor = attribute->data;
 
@@ -119,10 +121,10 @@ namespace gltf
                 auto index_z = static_cast<size_t> (my_mesh.vertices[i].joint_index.z);
                 auto index_w = static_cast<size_t> (my_mesh.vertices[i].joint_index.w);
 
-                my_mesh.vertices[i].joint_index.x = static_cast<float> (joint_map.at(skin.joints[index_x]));
-                my_mesh.vertices[i].joint_index.y = static_cast<float> (joint_map.at(skin.joints[index_y]));
-                my_mesh.vertices[i].joint_index.z = static_cast<float> (joint_map.at(skin.joints[index_z]));
-                my_mesh.vertices[i].joint_index.w = static_cast<float> (joint_map.at(skin.joints[index_w]));
+                my_mesh.vertices[i].joint_index.x = static_cast<float> (joint_map.at(index_x));
+                my_mesh.vertices[i].joint_index.y = static_cast<float> (joint_map.at(index_y));
+                my_mesh.vertices[i].joint_index.z = static_cast<float> (joint_map.at(index_z));
+                my_mesh.vertices[i].joint_index.w = static_cast<float> (joint_map.at(index_w));
             }
         }
 
@@ -204,31 +206,26 @@ namespace gltf
         }
     }
 
-    void init_mesh (model::SkinnedMesh &my_mesh, cgltf_primitive &primitive)
+    model::SkinnedMesh load_single_mesh (cgltf_data *data, const internal::SkinExtra &skin_extra)
     {
-        ASSERT(primitive.attributes_count, "No vertices for mesh!");
+        ASSERT(data->meshes_count == 1, "Only one mesh is supported at the moment! {} are present", data->meshes_count);
+        auto &mesh = data->meshes[0];
 
-        my_mesh.vertex_count = primitive.attributes[0].data->count;
-        my_mesh.index_count = primitive.indices->count;
-
-        my_mesh.vertices = std::make_unique<model::SkinnedMesh::VertexData[]>(my_mesh.vertex_count);
-        my_mesh.indices = std::make_unique<uint32_t[]>(my_mesh.index_count);
-    }
-
-    void load_mesh (cgltf_mesh &mesh, model::SkinnedMesh &my_mesh, cgltf_skin &skin, internal::joint_map_t &joint_map)
-    {
         ASSERT(mesh.primitives_count == 1, "This loader only supports meshes with one triangle pack!");
+        ASSERT(mesh.primitives[0].attributes_count, "This loader only supports primitives with attributes!");
 
         auto &primitive = mesh.primitives[0];
 
         ASSERT(primitive.indices->type == cgltf_type_scalar, "Index information invalid for mesh!");
         ASSERT(primitive.type == cgltf_primitive_type_triangles, "This loader only supports triangle meshes!");
 
-        init_mesh(my_mesh, primitive);
+        auto my_mesh = model::SkinnedMesh::prepare(primitive.attributes[0].data->count, primitive.indices->count);
 
         internal::load_vertices(my_mesh, primitive);
-        internal::load_joint_indices(my_mesh, primitive, skin, joint_map);
+        internal::load_joint_indices(my_mesh, primitive, skin_extra);
         internal::load_joint_weights(my_mesh, primitive);
         internal::load_indices(my_mesh, primitive);
+
+        return my_mesh;
     }
 }

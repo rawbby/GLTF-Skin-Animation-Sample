@@ -14,8 +14,9 @@ namespace model
         gl_uint_t vao = 0;
         gl_size_t index_count = -1;
 
-        static void fromSkinnedMesh (GlSkinnedMesh &my_mesh, const SkinnedMesh &mesh)
+        static GlSkinnedMesh fromSkinnedMesh (const SkinnedMesh &mesh)
         {
+            GlSkinnedMesh my_mesh{};
             my_mesh.index_count = mesh.index_count;
 
             glGenVertexArrays(1, &my_mesh.vao);
@@ -50,6 +51,8 @@ namespace model
             glDeleteBuffers(1, &vertex_buffer);
             glDeleteBuffers(1, &index_buffer);
             ASSERT_OPEN_GL_STATUS();
+
+            return my_mesh;
         }
     };
 }

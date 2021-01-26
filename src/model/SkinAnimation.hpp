@@ -1,12 +1,5 @@
 #pragma once
 
-#include <model/Types.hpp>
-
-#include <glm/vec3.hpp>
-#include <glm/matrix.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
-
 #include <memory>
 #include <cstdint>
 
@@ -31,7 +24,7 @@ namespace model
 
             [[nodiscard]] glm::mat4 trs () const
             {
-                return glm::translate(glm::identity<glm::mat4>(), translation) * glm::toMat4(rotation) * glm::scale(glm::identity<glm::mat4>(), scale);
+                return translate(glm::identity<glm::mat4>(), translation) * glm::toMat4(rotation) * glm::scale(glm::identity<glm::mat4>(), scale);
             }
         };
 
@@ -40,5 +33,15 @@ namespace model
 
         size_t keyframe_count = 0;
         size_t joint_count = 0;
+
+        static SkinAnimation prepare (size_t keyframe_count, size_t joint_count)
+        {
+            SkinAnimation anim;
+            anim.keyframes = std::make_unique<TRS[]>(keyframe_count * joint_count);
+            anim.timestamps = std::make_unique<float[]>(keyframe_count);
+            anim.keyframe_count = keyframe_count;
+            anim.joint_count = joint_count;
+            return anim;
+        }
     };
 }
