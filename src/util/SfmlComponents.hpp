@@ -35,6 +35,31 @@ public:
     }
 };
 
+class AnyKey
+{
+private:
+
+    bool m_any_pressed = false;
+
+public:
+
+    bool update (sf::Event event)
+    {
+        if (event.type == sf::Event::KeyPressed)
+        {
+            m_any_pressed = true;
+        }
+        return false;
+    }
+
+    bool any_pressed ()
+    {
+        const auto swap = m_any_pressed;
+        m_any_pressed = false;
+        return swap;
+    }
+};
+
 class Camera
 {
 private:
@@ -70,20 +95,20 @@ public:
     {
         if (mouse_pressed)
         {
-             m_rotation_x += static_cast<float> (sf::Mouse::getPosition().y - mouse_position.y) * 0.4f;
-             m_rotation_y += static_cast<float> (sf::Mouse::getPosition().x - mouse_position.x) * -0.4f;
+            m_rotation_x += static_cast<float> (sf::Mouse::getPosition().y - mouse_position.y) * 0.4f;
+            m_rotation_y += static_cast<float> (sf::Mouse::getPosition().x - mouse_position.x) * -0.4f;
 
-             //@formatter:off
+            //@formatter:off
              while (m_rotation_y < -180.0f) m_rotation_y += 360.0f;
              while (m_rotation_y > 180.0f)  m_rotation_y -= 360.0f;
              m_rotation_x = m_rotation_x > 50.0f ? 50.0f : m_rotation_x;
              m_rotation_x = m_rotation_x < -50.0f ? -50.0f : m_rotation_x;
              //@formatter:on
 
-             m_matrix = glm::lookAt(position(), m_center, m_up);
+            m_matrix = glm::lookAt(position(), m_center, m_up);
 
-             mouse_position.x = sf::Mouse::getPosition().x;
-             mouse_position.y = sf::Mouse::getPosition().y;
+            mouse_position.x = sf::Mouse::getPosition().x;
+            mouse_position.y = sf::Mouse::getPosition().y;
         }
 
         if (event.type == sf::Event::MouseButtonPressed)

@@ -7,6 +7,8 @@ include(cmake/set_compile_warnings.cmake)
 
 include(cmake/conan.cmake)
 conan_add_remote(NAME bincrafters URL https://api.bintray.com/conan/bincrafters/public-conan)
+conan_add_remote(NAME conan-center URL https://conan.bintray.com)
+
 conan_cmake_run(REQUIRES
         glew/2.1.0
         glm/0.9.9.8
@@ -30,7 +32,9 @@ target_sources(${THIS} INTERFACE
         src/model/Skin.hpp
         src/model/SkinAnimation.hpp
         src/model/SkinAnimator.hpp
+        src/model/SkinBlendAnimator.hpp
         src/model/SkinnedMesh.hpp
+        src/model/SkinTransitionAnimator.hpp
         src/model/Types.hpp
 
         src/gltf/GLTFLoader.hpp

@@ -12,12 +12,9 @@
 #include <model/GlSkinnedMesh.hpp>
 #include <model/Skin.hpp>
 #include <model/SkinAnimation.hpp>
-#include <model/SkinAnimator.hpp>
-#include <model/SkinBlendAnimator.hpp>
+#include <model/SkinTransitionAnimator.hpp>
 
 #include <gltf/GLTFLoader.hpp>
-
-#include <cmath>
 
 int main (const int argc, const char **argv)
 {
@@ -26,8 +23,6 @@ int main (const int argc, const char **argv)
     sf::ContextSettings settings{24, 8, 4, 4, 5, sf::ContextSettings::Default, false};
     sf::Window window(sf::VideoMode(800, 600), "OpenGL", sf::Style::Default, settings);
     window.setFramerateLimit(144);
-
-    sf::Clock clock{};
 
     glewExperimental = GL_TRUE;
     glewInit();
@@ -44,26 +39,37 @@ int main (const int argc, const char **argv)
     gltf::internal::AnimationsExtra anims_extra{};
     auto anims = gltf::load_animations(data.get(), skin_extra, anims_extra);
 
+    auto anim_ptrs = std::make_unique<model::SkinAnimation *[]>(anims_extra.animation_count);
+    for (size_t i = 0; i < anims_extra.animation_count; ++i)
+        anim_ptrs[i] = &anims[i];
+
     auto mesh = model::GlSkinnedMesh::fromSkinnedMesh(mesh_buffer);
-    auto ator = model::SkinBlendAnimator::create(&skin, anims.get(), anims_extra.animation_count);
+    auto ator = model::create_skin_transition_animator(&skin, anim_ptrs.get(), anims_extra.animation_count);
 
-    ator.update(
-            anims_extra.animation_map["Wabble"],
-            anims_extra.animation_map["move"],
-            0,
-            0.5f, 0.5f, 0.0f);
+    update_transition(ator, anims_extra.animation_map["Wabble"], 5.0f);
 
-    const auto vertex_shader = compile_shader(GL_VERTEX_SHADER, glsl::vs::blend_animator);
+    const auto vertex_shader = compile_shader(GL_VERTEX_SHADER, glsl::vs::animator);
     const auto fragment_shader = compile_shader(GL_FRAGMENT_SHADER, glsl::fs::text);
     const auto program = compile_program(vertex_shader, fragment_shader);
 
     Escape escape{&window};
+    AnyKey any_key{};
     Camera camera{};
     Projection projection{800.0f, 600.0f};
+    sf::Clock clock{};
 
     while (window.isOpen())
     {
-        ator.update(clock.getElapsedTime().asSeconds());
+        if(any_key.any_pressed())
+        {
+            if (ator.animation_indices[0] == 0)
+                update_transition(ator, 1, 5.0f);
+            else
+                update_transition(ator, 0, 5.0f);
+        }
+
+        const auto delta = clock.getElapsedTime().asSeconds();
+        update_transition_animation(ator, delta);
         clock.restart();
 
         glClearColor(0.6f, 0.75f, 1.0f, 1.0f);
@@ -74,14 +80,7 @@ int main (const int argc, const char **argv)
 
         glUniformMatrix4fv(glGetUniformLocation(program, "u_projection_matrix"), 1, GL_FALSE, glm::value_ptr(projection.matrix() * camera.matrix()));
         glUniformMatrix4fv(glGetUniformLocation(program, "u_model_view_matrix"), 1, GL_FALSE, glm::value_ptr(glm::identity<glm::mat4>()));
-
-        glUniform1f(glGetUniformLocation(program, "u_animation_weight_0"), ator.animation_weights[0]);
-        glUniform1f(glGetUniformLocation(program, "u_animation_weight_1"), ator.animation_weights[1]);
-        glUniform1f(glGetUniformLocation(program, "u_animation_weight_2"), ator.animation_weights[2]);
-
-        glUniformMatrix4fv(glGetUniformLocation(program, "u_animation_joints_0"), skin.joint_count, GL_FALSE, glm::value_ptr(*ator.joints[0]));
-        glUniformMatrix4fv(glGetUniformLocation(program, "u_animation_joints_1"), skin.joint_count, GL_FALSE, glm::value_ptr(*ator.joints[1]));
-        glUniformMatrix4fv(glGetUniformLocation(program, "u_animation_joints_2"), skin.joint_count, GL_FALSE, glm::value_ptr(*ator.joints[2]));
+        glUniformMatrix4fv(glGetUniformLocation(program, "u_joints"), skin.joint_count, GL_FALSE, glm::value_ptr(*ator.joints));
 
         glDrawElements(GL_TRIANGLES, mesh.index_count, GL_UNSIGNED_INT, nullptr);
 
@@ -93,6 +92,7 @@ int main (const int argc, const char **argv)
         for (sf::Event event{}; window.pollEvent(event);)
         {
             escape.update(event);
+            any_key.update(event);
             camera.update(event);
             projection.update(event);
         }
