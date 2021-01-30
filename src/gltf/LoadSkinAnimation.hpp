@@ -8,19 +8,22 @@
 #include <gltf/Types.hpp>
 
 #include <util/Assert.hpp>
+#include <model/HeapArray.hpp>
 #include <model/SkinAnimation.hpp>
 
 namespace gltf
 {
-    std::unique_ptr<model::SkinAnimation[]> load_animations (cgltf_data *data, const internal::SkinExtra &skin_extra, internal::AnimationsExtra &animations_extra)
+    model::HeapArray<model::SkinAnimation> load_animations (cgltf_data *data, const internal::SkinExtra &skin_extra, internal::AnimationsExtra &animations_extra)
     {
+        using namespace model;
+
         const auto &skin = data->skins[skin_extra.skin_index];
         const auto &joint_map = skin_extra.joint_map;
 
         ASSERT(data->animations_count, "Can not load animations, if there are no animations at all!");
         animations_extra.animation_count = data->animations_count;
 
-        auto my_anims = std::make_unique<model::SkinAnimation[]>(data->animations_count);
+        auto my_anims = HeapArray<SkinAnimation>(data->animations_count);
         for (size_t i = 0; i < data->animations_count; ++i)
         {
             auto &anim = data->animations[i];

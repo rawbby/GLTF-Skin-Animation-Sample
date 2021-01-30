@@ -44,6 +44,7 @@ target_sources(${THIS} INTERFACE
         src/gltf/Types.hpp
         src/gltf/Util.hpp
 
+        src/model/HeapArray.hpp
         src/util/Assert.hpp
         src/util/GLUtils.hpp
         src/util/SfmlComponents.hpp)

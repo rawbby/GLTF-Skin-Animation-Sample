@@ -68,7 +68,7 @@ namespace model
 
     struct SkinAnimator
     {
-        std::unique_ptr<glm::mat4[]> internal_joints{};
+        HeapArray<glm::mat4> internal_joints{};
 
         Skin *skin = nullptr;
         SkinAnimation *anim = nullptr;
@@ -92,12 +92,13 @@ namespace model
         ASSERT(anim, "Animator can not animate nullptr animation!");
 
         ASSERT(skin->joint_count, "Animator will loop infinite when joint_count is set to zero!");
+        ASSERT(skin->joint_count <= 32, "Animator is limited to 32 bones to minimize gpu traffic!");
         ASSERT(skin->joint_count == anim->joint_count, "Skin and SkinAnimation are not compatible!");
 
         SkinAnimator ator;
         ator.skin = skin;
         ator.anim = anim;
-        ator.internal_joints = std::make_unique<glm::mat4[]>(static_cast<size_t> (skin->joint_count) + 1);
+        ator.internal_joints = HeapArray<glm::mat4>(skin->joint_count + 1);
         ator.joints = &(ator.internal_joints[1]);
         ator.joint_count = skin->joint_count;
         ator.current_time = 0.0f;

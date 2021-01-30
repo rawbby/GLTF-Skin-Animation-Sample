@@ -26,7 +26,7 @@ namespace model
             GLuint vertex_buffer = GL_NONE;
             glGenBuffers(1, &vertex_buffer);
             glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-            glBufferData(GL_ARRAY_BUFFER, mesh.vertex_count * SkinnedMesh::stride, mesh.vertices.get(), GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, mesh.vertex_count * SkinnedMesh::stride, mesh.vertices.data(), GL_STATIC_DRAW);
             ASSERT_OPEN_GL_STATUS();
 
             glVertexAttribPointer(SkinnedMesh::vertex_layout, 3, GL_FLOAT, GL_FALSE, SkinnedMesh::stride, SkinnedMesh::vertex_offset);
@@ -44,7 +44,7 @@ namespace model
             GLuint index_buffer = GL_NONE;
             glGenBuffers(1, &index_buffer);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.index_count * sizeof(uint32_t), mesh.indices.get(), GL_STATIC_DRAW);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.index_count * sizeof(uint32_t), mesh.indices.data(), GL_STATIC_DRAW);
             ASSERT_OPEN_GL_STATUS();
 
             glBindVertexArray(GL_NONE);

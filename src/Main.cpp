@@ -8,6 +8,7 @@
 
 #include <util/SfmlComponents.hpp>
 #include <util/GLUtils.hpp>
+#include <model/HeapArray.hpp>
 
 #include <model/GlSkinnedMesh.hpp>
 #include <model/Skin.hpp>
@@ -39,12 +40,8 @@ int main (const int argc, const char **argv)
     gltf::internal::AnimationsExtra anims_extra{};
     auto anims = gltf::load_animations(data.get(), skin_extra, anims_extra);
 
-    auto anim_ptrs = std::make_unique<model::SkinAnimation *[]>(anims_extra.animation_count);
-    for (size_t i = 0; i < anims_extra.animation_count; ++i)
-        anim_ptrs[i] = &anims[i];
-
     auto mesh = model::GlSkinnedMesh::fromSkinnedMesh(mesh_buffer);
-    auto ator = model::create_skin_transition_animator(&skin, anim_ptrs.get(), anims_extra.animation_count);
+    auto ator = model::create_skin_transition_animator(&skin, anims.data(), anims_extra.animation_count);
 
     update_transition(ator, anims_extra.animation_map["Wabble"], 5.0f);
 
@@ -60,7 +57,7 @@ int main (const int argc, const char **argv)
 
     while (window.isOpen())
     {
-        if(any_key.any_pressed())
+        if (any_key.any_pressed())
         {
             if (ator.animation_indices[0] == 0)
                 update_transition(ator, 1, 5.0f);

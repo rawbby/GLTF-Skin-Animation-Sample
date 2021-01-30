@@ -1,5 +1,7 @@
 #pragma once
 
+#include <model/HeapArray.hpp>
+
 #include <memory>
 #include <cstdint>
 
@@ -28,8 +30,8 @@ namespace model
             }
         };
 
-        std::unique_ptr<TRS[]> keyframes{};
-        std::unique_ptr<float[]> timestamps{};
+        HeapArray <TRS> keyframes{};
+        HeapArray<float> timestamps{};
 
         size_t keyframe_count = 0;
         size_t joint_count = 0;
@@ -37,8 +39,8 @@ namespace model
         static SkinAnimation prepare (size_t keyframe_count, size_t joint_count)
         {
             SkinAnimation anim;
-            anim.keyframes = std::make_unique<TRS[]>(keyframe_count * joint_count);
-            anim.timestamps = std::make_unique<float[]>(keyframe_count);
+            anim.keyframes = HeapArray<TRS>(keyframe_count * joint_count);
+            anim.timestamps = HeapArray<float>(keyframe_count);
             anim.keyframe_count = keyframe_count;
             anim.joint_count = joint_count;
             return anim;
